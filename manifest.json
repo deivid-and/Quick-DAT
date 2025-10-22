@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "DAT Load Board Optimizer",
+  "version": "1.0",
+  "description": "Quick email and maps integration for DAT load board",
+  "permissions": [
+    "contextMenus",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://one.dat.com/*",
+    "https://mail.google.com/*",
+    "https://maps.google.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://one.dat.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "DAT Load Optimizer"
+  }
+}
