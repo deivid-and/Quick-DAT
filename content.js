@@ -16,45 +16,55 @@ class DATLoadExtractor {
 
   extractLoadData() {
     // Extract origin and destination from multiple possible selectors
+    // Based on actual DAT UI structure from inspect data
     const originSelectors = [
       '.trip-place div:first-child',
       '.route-origin .city',
-      '.city.city-table'
+      '.city.city-table',
+      '.route-flex .route-origin .city'
     ];
     
     const destinationSelectors = [
       '.trip-place div:last-child',
       '.route-destination .city',
-      '.city.align.city-table'
+      '.city.align.city-table',
+      '.route-flex .route-destination .city'
     ];
 
     const dateSelectors = [
       '.date',
-      '.route-origin .date'
+      '.route-origin .date',
+      '.route-flex .date'
     ];
 
     const phoneSelectors = [
       'a[href^="tel:"]',
-      '.contacts__phone'
+      '.contacts__phone',
+      '.company-data-container a[href^="tel:"]'
     ];
 
     const emailSelectors = [
-      'a[href^="mailto:"]'
+      'a[href^="mailto:"]',
+      '.contacts__email'
     ];
 
     const rateSelectors = [
       '.data-item-total',
-      '.rate-data'
+      '.rate-data',
+      '.data-item.data-item-total'
     ];
 
     const commoditySelectors = [
       '.data-item.multiline',
+      '.equipment-data .data-item.multiline',
       '.equipment-data .data-item'
     ];
 
+    // Fixed reference selectors - removed invalid :contains() selector
     const referenceSelectors = [
-      '.data-item:contains("Reference")',
-      '.equipment-data .data-item:last-child'
+      '.equipment-data .data-item:last-child',
+      '.data-item:last-child',
+      '.equipment-data .data-item:nth-last-child(2)'
     ];
 
     return {
