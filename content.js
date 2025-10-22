@@ -1,29 +1,56 @@
-// Content script for DAT load board interaction
-class DATLoadExtractor {
+// Quick-DAT Content Script - Icon-based interface
+class QuickDAT {
   constructor() {
-    this.setupMessageListener();
-    this.addVisualIcons();
+    this.iconsAdded = new Set();
+    this.setupObserver();
+    this.loadSettings();
   }
 
-  setupMessageListener() {
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-      if (request.action === "emailBroker") {
-        this.handleEmailBroker();
-      } else if (request.action === "viewRoute") {
-        this.handleViewRoute();
-      }
-    });
+  async loadSettings() {
+    try {
+      const result = await chrome.storage.sync.get(['emailTemplate']);
+      this.settings = {
+        emailTemplate: result.emailTemplate || this.getDefaultTemplate()
+      };
+    } catch (error) {
+      this.settings = {
+        emailTemplate: this.getDefaultTemplate()
+      };
+    }
   }
 
-  addVisualIcons() {
-    // Add visual icons to each load popup for better UX
+  getDefaultTemplate() {
+    return `Hello,
+
+I'm interested in the load from {{ORIGIN}} to {{DESTINATION}}{{DATE}}.
+
+Could you please provide the following details:
+- Pickup and delivery times
+- Weight and commodity details (Currently shows: {{COMMODITY}} , {{WEIGHT}})
+- Any special requirements
+- Your best rate (posted rate: {{RATE}})
+
+Reference ID: {{REFERENCE}}
+
+Is this load still available?
+
+Thank you,`;
+  }
+
+  setupObserver() {
+    // Watch for new load popups
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
-          if (node.nodeType === 1) { // Element node
-            const loadDetails = node.querySelector ? node.querySelector('dat-load-details') : null;
-            if (loadDetails || node.tagName === 'DAT-LOAD-DETAILS') {
-              this.addIconsToPopup(loadDetails || node);
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            // Check if this is a dat-load-details element
+            if (node.matches && node.matches('dat-load-details')) {
+              this.addIconsToPopup(node);
+            }
+            // Check for nested dat-load-details
+            const loadDetails = node.querySelectorAll && node.querySelectorAll('dat-load-details');
+            if (loadDetails) {
+              loadDetails.forEach(popup => this.addIconsToPopup(popup));
             }
           }
         });
@@ -35,158 +62,89 @@ class DATLoadExtractor {
       subtree: true
     });
 
-    // Also check for existing popups
+    // Also check existing popups
     document.querySelectorAll('dat-load-details').forEach(popup => {
       this.addIconsToPopup(popup);
     });
   }
 
   addIconsToPopup(popup) {
-    if (popup.dataset.iconsAdded) return; // Already added icons
+    if (this.iconsAdded.has(popup)) return;
     
+    const loadData = this.extractLoadData(popup);
+    if (!loadData.origin || !loadData.destination) return;
+
     // Find the header actions area
-    const actionsArea = popup.querySelector('.details-header_actions') || 
-                       popup.querySelector('.details-header') ||
-                       popup.querySelector('.details-block');
-    
+    const actionsArea = popup.querySelector('.details-header_actions');
     if (!actionsArea) return;
 
     // Create icons container
     const iconsContainer = document.createElement('div');
-    iconsContainer.className = 'dat-extension-icons';
-    iconsContainer.style.cssText = `
-      display: flex;
-      gap: 8px;
-      margin-left: 10px;
-      align-items: center;
-    `;
+    iconsContainer.className = 'quick-dat-icons';
+    iconsContainer.style.cssText = 
+      'display: flex;' +
+      'gap: 8px;' +
+      'margin-left: 8px;';
 
-    // Email icon
-    const emailIcon = document.createElement('button');
-    emailIcon.innerHTML = '📧';
-    emailIcon.title = 'Email Broker';
-    emailIcon.style.cssText = `
-      background: #0046E0;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 6px 8px;
-      cursor: pointer;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    `;
-    emailIcon.onclick = (e) => {
-      e.stopPropagation();
-      this.handleEmailBrokerForPopup(popup);
-    };
-
-    // Maps icon
-    const mapsIcon = document.createElement('button');
-    mapsIcon.innerHTML = '🗺️';
-    mapsIcon.title = 'View Route';
-    mapsIcon.style.cssText = `
-      background: #28a745;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 6px 8px;
-      cursor: pointer;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    `;
-    mapsIcon.onclick = (e) => {
-      e.stopPropagation();
-      this.handleViewRouteForPopup(popup);
-    };
-
-    iconsContainer.appendChild(emailIcon);
+    // Add Maps icon (always show)
+    const mapsIcon = this.createIcon('🗺️', 'View Route on Maps', () => {
+      this.openGoogleMaps(loadData);
+    });
     iconsContainer.appendChild(mapsIcon);
-    actionsArea.appendChild(iconsContainer);
-    
-    popup.dataset.iconsAdded = 'true';
-  }
 
-  extractLoadData() {
-    // Extract origin and destination from multiple possible selectors
-    // Based on actual DAT UI structure from inspect data
-    const originSelectors = [
-      '.trip-place div:first-child',
-      '.route-origin .city',
-      '.city.city-table',
-      '.route-flex .route-origin .city'
-    ];
-    
-    const destinationSelectors = [
-      '.trip-place div:last-child',
-      '.route-destination .city',
-      '.city.align.city-table',
-      '.route-flex .route-destination .city'
-    ];
-
-    const dateSelectors = [
-      '.date',
-      '.route-origin .date',
-      '.route-flex .date'
-    ];
-
-    const phoneSelectors = [
-      'a[href^="tel:"]',
-      '.contacts__phone',
-      '.company-data-container a[href^="tel:"]'
-    ];
-
-    const emailSelectors = [
-      'a[href^="mailto:"]',
-      '.contacts__email'
-    ];
-
-    const rateSelectors = [
-      '.data-item-total',
-      '.rate-data',
-      '.data-item.data-item-total'
-    ];
-
-    const commoditySelectors = [
-      '.data-item.multiline',
-      '.equipment-data .data-item.multiline',
-      '.equipment-data .data-item'
-    ];
-
-    // Fixed reference selectors - removed invalid :contains() selector
-    const referenceSelectors = [
-      '.equipment-data .data-item:last-child',
-      '.data-item:last-child',
-      '.equipment-data .data-item:nth-last-child(2)'
-    ];
-
-    return {
-      origin: this.extractText(originSelectors),
-      destination: this.extractText(destinationSelectors),
-      date: this.extractText(dateSelectors),
-      phone: this.extractText(phoneSelectors),
-      email: this.extractText(emailSelectors),
-      rate: this.extractText(rateSelectors),
-      commodity: this.extractText(commoditySelectors),
-      reference: this.extractText(referenceSelectors)
-    };
-  }
-
-  extractText(selectors) {
-    for (const selector of selectors) {
-      const element = document.querySelector(selector);
-      if (element && element.textContent.trim()) {
-        return element.textContent.trim();
-      }
+    // Add Email icon only if email exists
+    if (loadData.email) {
+      const emailIcon = this.createIcon('📧', 'Email Broker', () => {
+        this.openEmailDraft(loadData);
+      });
+      iconsContainer.appendChild(emailIcon);
     }
-    return '';
+
+    // Insert icons into actions area
+    actionsArea.appendChild(iconsContainer);
+    this.iconsAdded.add(popup);
   }
 
-  extractLoadDataFromPopup(popup) {
-    // Extract data from a specific popup element
+  createIcon(emoji, title, onClick) {
+    const icon = document.createElement('button');
+    icon.innerHTML = emoji;
+    icon.title = title;
+    icon.style.cssText = 
+      'background: #0046e0;' +
+      'color: white;' +
+      'border: none;' +
+      'border-radius: 50%;' +
+      'width: 32px;' +
+      'height: 32px;' +
+      'display: flex;' +
+      'align-items: center;' +
+      'justify-content: center;' +
+      'cursor: pointer;' +
+      'font-size: 14px;' +
+      'transition: all 0.2s ease;' +
+      'box-shadow: 0 2px 4px rgba(0, 70, 224, 0.3);';
+    
+    icon.addEventListener('mouseenter', () => {
+      icon.style.transform = 'scale(1.1)';
+      icon.style.boxShadow = '0 4px 8px rgba(0, 70, 224, 0.4)';
+    });
+    
+    icon.addEventListener('mouseleave', () => {
+      icon.style.transform = 'scale(1)';
+      icon.style.boxShadow = '0 2px 4px rgba(0, 70, 224, 0.3)';
+    });
+    
+    icon.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onClick();
+    });
+
+    return icon;
+  }
+
+  extractLoadData(popup) {
+    // Extract data from specific popup element
     const originSelectors = [
       '.trip-place div:first-child',
       '.route-origin .city',
@@ -201,40 +159,13 @@ class DATLoadExtractor {
       '.route-flex .route-destination .city'
     ];
 
-    const dateSelectors = [
-      '.date',
-      '.route-origin .date',
-      '.route-flex .date'
-    ];
-
-    const phoneSelectors = [
-      'a[href^="tel:"]',
-      '.contacts__phone',
-      '.company-data-container a[href^="tel:"]'
-    ];
-
-    const emailSelectors = [
-      'a[href^="mailto:"]',
-      '.contacts__email'
-    ];
-
-    const rateSelectors = [
-      '.data-item-total',
-      '.rate-data',
-      '.data-item.data-item-total'
-    ];
-
-    const commoditySelectors = [
-      '.data-item.multiline',
-      '.equipment-data .data-item.multiline',
-      '.equipment-data .data-item'
-    ];
-
-    const referenceSelectors = [
-      '.equipment-data .data-item:last-child',
-      '.data-item:last-child',
-      '.equipment-data .data-item:nth-last-child(2)'
-    ];
+    const dateSelectors = ['.date', '.route-origin .date', '.route-flex .date'];
+    const phoneSelectors = ['a[href^="tel:"]', '.contacts__phone', '.company-data-container a[href^="tel:"]'];
+    const emailSelectors = ['a[href^="mailto:"]', '.contacts__email'];
+    const rateSelectors = ['.data-item-total', '.rate-data', '.data-item.data-item-total'];
+    const commoditySelectors = ['.data-item.multiline', '.equipment-data .data-item.multiline', '.equipment-data .data-item'];
+    const weightSelectors = ['.equipment-data .data-item:nth-child(4)', '.data-item:contains("Weight")'];
+    const referenceSelectors = ['.equipment-data .data-item:last-child', '.data-item:last-child'];
 
     return {
       origin: this.extractTextFromElement(popup, originSelectors),
@@ -244,100 +175,48 @@ class DATLoadExtractor {
       email: this.extractTextFromElement(popup, emailSelectors),
       rate: this.extractTextFromElement(popup, rateSelectors),
       commodity: this.extractTextFromElement(popup, commoditySelectors),
+      weight: this.extractTextFromElement(popup, weightSelectors),
       reference: this.extractTextFromElement(popup, referenceSelectors)
     };
   }
 
   extractTextFromElement(element, selectors) {
     for (const selector of selectors) {
-      const foundElement = element.querySelector(selector);
-      if (foundElement && foundElement.textContent.trim()) {
-        return foundElement.textContent.trim();
+      const found = element.querySelector(selector);
+      if (found && found.textContent.trim()) {
+        return found.textContent.trim();
       }
     }
     return '';
   }
 
-  handleEmailBroker() {
-    // Find the closest dat-load-details element to the clicked element
-    const targetPopup = this.findTargetPopup();
-    if (targetPopup) {
-      this.handleEmailBrokerForPopup(targetPopup);
-    } else {
-      const loadData = this.extractLoadData();
-      this.openEmailDraft(loadData);
-    }
-  }
-
-  handleViewRoute() {
-    // Find the closest dat-load-details element to the clicked element
-    const targetPopup = this.findTargetPopup();
-    if (targetPopup) {
-      this.handleViewRouteForPopup(targetPopup);
-    } else {
-      const loadData = this.extractLoadData();
-      this.openGoogleMaps(loadData);
-    }
-  }
-
-  findTargetPopup() {
-    // Try to find the most recently opened or focused popup
-    const popups = document.querySelectorAll('dat-load-details');
-    if (popups.length === 0) return null;
-    
-    // Return the last one (most recently opened)
-    return popups[popups.length - 1];
-  }
-
-  handleEmailBrokerForPopup(popup) {
-    const loadData = this.extractLoadDataFromPopup(popup);
-    this.openEmailDraft(loadData);
-  }
-
-  handleViewRouteForPopup(popup) {
-    const loadData = this.extractLoadDataFromPopup(popup);
-    this.openGoogleMaps(loadData);
-  }
-
   openEmailDraft(loadData) {
-    // Create email subject
     const subject = `Load Inquiry: ${loadData.origin} to ${loadData.destination}${loadData.date ? ` (${loadData.date})` : ''}`;
-    
-    // Create email body
     const body = this.createEmailBody(loadData);
     
-    // Create Gmail URL
     const emailParams = new URLSearchParams({
-      to: loadData.email || '',
+      to: loadData.email,
       subject: subject,
       body: body
     });
     
     const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&${emailParams.toString()}`;
-    
-    // Open Gmail in new tab
     window.open(gmailUrl, '_blank');
   }
 
   createEmailBody(loadData) {
-    return `Hello,
-
-I'm interested in the load from ${loadData.origin} to ${loadData.destination}${loadData.date ? ` (${loadData.date})` : ''}.
-
-Could you please provide the following details:
-- Pickup and delivery times
-- Weight and commodity details${loadData.commodity ? ` (I see: ${loadData.commodity})` : ''}
-- Any special requirements
-- Rate confirmation${loadData.rate ? ` (Current rate: ${loadData.rate})` : ''}
-
-${loadData.reference ? `Reference ID: ${loadData.reference}` : ''}
-
-Please let me know if this load is still available and if you need any additional information from me.
-
-Thank you,
-[Your Name]
-[Your Company]
-[Your Phone]`;
+    let body = this.settings.emailTemplate;
+    
+    // Replace template variables
+    body = body.replace(/\{\{ORIGIN\}\}/g, loadData.origin);
+    body = body.replace(/\{\{DESTINATION\}\}/g, loadData.destination);
+    body = body.replace(/\{\{DATE\}\}/g, loadData.date ? ` (${loadData.date})` : '');
+    body = body.replace(/\{\{COMMODITY\}\}/g, loadData.commodity ? ` (I see: ${loadData.commodity})` : '');
+    body = body.replace(/\{\{RATE\}\}/g, loadData.rate ? ` (Current rate: ${loadData.rate})` : '');
+    body = body.replace(/\{\{WEIGHT\}\}/g, loadData.weight ? ` (Weight: ${loadData.weight})` : '');
+    body = body.replace(/\{\{REFERENCE\}\}/g, loadData.reference ? `Reference ID: ${loadData.reference}` : '');
+    
+    return body;
   }
 
   openGoogleMaps(loadData) {
@@ -346,21 +225,16 @@ Thank you,
       return;
     }
 
-    // Create Google Maps URL with directions
     const origin = encodeURIComponent(loadData.origin);
     const destination = encodeURIComponent(loadData.destination);
     const mapsUrl = `https://www.google.com/maps/dir/${origin}/${destination}`;
-    
-    // Open Google Maps in new tab
     window.open(mapsUrl, '_blank');
   }
 }
 
-// Initialize the extension when DOM is ready
+// Initialize when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    new DATLoadExtractor();
-  });
+  document.addEventListener('DOMContentLoaded', () => new QuickDAT());
 } else {
-  new DATLoadExtractor();
+  new QuickDAT();
 }

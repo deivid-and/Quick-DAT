@@ -1,28 +1,21 @@
-// Background script for context menu handling
+// Quick-DAT Background Script
 chrome.runtime.onInstalled.addListener(() => {
-  // Create context menu items
-  chrome.contextMenus.create({
-    id: "emailBroker",
-    title: "📧 Email Broker",
-    contexts: ["all"],
-    documentUrlPatterns: ["https://one.dat.com/*"]
-  });
+  // Initialize default settings
+  chrome.storage.sync.set({
+    emailTemplate: `Hello,
 
-  chrome.contextMenus.create({
-    id: "viewRoute",
-    title: "🗺️ View Route on Maps",
-    contexts: ["all"],
-    documentUrlPatterns: ["https://one.dat.com/*"]
-  });
-});
+I'm interested in the load from {{ORIGIN}} to {{DESTINATION}}{{DATE}}.
 
-// Handle context menu clicks
-chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId === "emailBroker") {
-    // Send message to content script to extract load data and open email
-    chrome.tabs.sendMessage(tab.id, { action: "emailBroker" });
-  } else if (info.menuItemId === "viewRoute") {
-    // Send message to content script to extract route data and open maps
-    chrome.tabs.sendMessage(tab.id, { action: "viewRoute" });
-  }
+Could you please provide the following details:
+- Pickup and delivery times
+- Weight and commodity details (Currently shows: {{COMMODITY}} , {{WEIGHT}})
+- Any special requirements
+- Your best rate (posted rate: {{RATE}})
+
+Reference ID: {{REFERENCE}}
+
+Is this load still available?
+
+Thank you,`
+  });
 });
