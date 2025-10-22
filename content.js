@@ -85,14 +85,14 @@ Thank you,`;
       'margin-left: 8px;';
 
     // Add Maps icon (always show)
-    const mapsIcon = this.createIcon('🗺️', 'View Route on Maps', () => {
+    const mapsIcon = this.createIcon('map', 'View Route on Maps', () => {
       this.openGoogleMaps(loadData);
     });
     iconsContainer.appendChild(mapsIcon);
 
     // Add Email icon only if email exists
     if (loadData.email) {
-      const emailIcon = this.createIcon('📧', 'Email Broker', () => {
+      const emailIcon = this.createIcon('mail', 'Email Broker', () => {
         this.openEmailDraft(loadData);
       });
       iconsContainer.appendChild(emailIcon);
@@ -103,13 +103,22 @@ Thank you,`;
     this.iconsAdded.add(popup);
   }
 
-  createIcon(emoji, title, onClick) {
+  createIcon(iconType, title, onClick) {
     const icon = document.createElement('button');
-    icon.innerHTML = emoji;
     icon.title = title;
+    
+    // Create icon image
+    const iconImg = document.createElement('img');
+    iconImg.src = chrome.runtime.getURL(`icons/${iconType}-icon.png`);
+    iconImg.style.cssText = 
+      'width: 20px;' +
+      'height: 20px;' +
+      'filter: brightness(0);' +
+      'transition: all 0.2s ease;';
+    
+    icon.appendChild(iconImg);
     icon.style.cssText = 
-      'background: #0046e0;' +
-      'color: white;' +
+      'background: transparent;' +
       'border: none;' +
       'border-radius: 50%;' +
       'width: 32px;' +
@@ -118,18 +127,21 @@ Thank you,`;
       'align-items: center;' +
       'justify-content: center;' +
       'cursor: pointer;' +
-      'font-size: 14px;' +
       'transition: all 0.2s ease;' +
-      'box-shadow: 0 2px 4px rgba(0, 70, 224, 0.3);';
+      'padding: 6px;';
     
     icon.addEventListener('mouseenter', () => {
+      icon.style.background = '#0046e0';
       icon.style.transform = 'scale(1.1)';
       icon.style.boxShadow = '0 4px 8px rgba(0, 70, 224, 0.4)';
+      iconImg.style.filter = 'brightness(0) invert(1)';
     });
     
     icon.addEventListener('mouseleave', () => {
+      icon.style.background = 'transparent';
       icon.style.transform = 'scale(1)';
-      icon.style.boxShadow = '0 2px 4px rgba(0, 70, 224, 0.3)';
+      icon.style.boxShadow = 'none';
+      iconImg.style.filter = 'brightness(0)';
     });
     
     icon.addEventListener('click', (e) => {
@@ -248,7 +260,7 @@ Thank you,`;
           if (popup) {
             const existingIcons = popup.querySelector('.quick-dat-icons');
             if (existingIcons && !existingIcons.querySelector('[title="Email Broker"]')) {
-              const emailIcon = this.createIcon('📧', 'Email Broker', () => {
+              const emailIcon = this.createIcon('mail', 'Email Broker', () => {
                 this.openEmailDraft({
                   ...this.extractLoadData(popup),
                   email: delayedEmail

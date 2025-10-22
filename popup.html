@@ -23,10 +23,30 @@
       text-align: center;
     }
     
+    .logo-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    
+    .logo {
+      width: 32px;
+      height: 32px;
+      filter: brightness(0) invert(1);
+    }
+    
+    .logo-hero {
+      width: 100px;
+      height: 100px;
+      filter: brightness(0) invert(1);
+    }
+
     .header h1 {
       font-size: 24px;
       font-weight: 600;
-      margin-bottom: 8px;
+      margin: 0;
     }
     
     .header p {
@@ -178,18 +198,75 @@
       color: #666;
       line-height: 1.4;
     }
+    
+    .instruction-steps {
+      margin-top: 10px;
+    }
+    
+    .step {
+      display: flex;
+      align-items: center;
+      margin: 8px 0;
+      gap: 10px;
+    }
+    
+    .step-number {
+      background: #0046e0;
+      color: white;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+    
+    .icon-examples {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      margin-left: 30px;
+    }
+    
+    .example-icon {
+      width: 24px;
+      height: 24px;
+      filter: brightness(0);
+    }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>Quick-DAT</h1>
+    <div class="logo-container">
+      <img src="icons/Quick-DAT-Logo.png" alt="Quick-DAT Logo" class="logo-hero">
+    </div>
     <p>Optimize your DAT workflow</p>
   </div>
   
   <div class="content">
     <div class="instructions">
       <h4>How to use:</h4>
-      <p>Navigate to DAT load board, open any load popup, and click the 🗺️ or 📧 icons that appear automatically.</p>
+      <div class="instruction-steps">
+        <div class="step">
+          <span class="step-number">1</span>
+          <span>Navigate to DAT load board</span>
+        </div>
+        <div class="step">
+          <span class="step-number">2</span>
+          <span>Open any load popup</span>
+        </div>
+        <div class="step">
+          <span class="step-number">3</span>
+          <span>Click the icons in the top-right corner:</span>
+          <div class="icon-examples">
+            <img src="icons/map-icon.png" alt="Map Icon" class="example-icon">
+            <img src="icons/mail-icon.png" alt="Email Icon" class="example-icon">
+          </div>
+        </div>
+      </div>
     </div>
     
     <div class="section">
