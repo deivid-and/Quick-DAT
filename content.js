@@ -1,4 +1,4 @@
-// Quick-DAT Content Script - Icon-based interface
+// Quick-DAT Content Script
 class QuickDAT {
   constructor() {
     this.iconsAdded = new Set();
@@ -25,14 +25,12 @@ class QuickDAT {
 I'm interested in the load from {{ORIGIN}} to {{DESTINATION}}{{DATE}}.
 
 Could you please provide the following details:
-- Pickup and delivery times
-- Weight and commodity details (Currently shows: {{COMMODITY}} , {{WEIGHT}})
+{{PICKUP_DELIVERY}}
+- Weight and commodity details (currently shows: {{COMMODITY}} , {{WEIGHT}})
 - Any special requirements
 - Your best rate (posted rate: {{RATE}})
 
 Reference ID: {{REFERENCE}}
-
-Is this load still available?
 
 Thank you,`;
   }
@@ -161,8 +159,21 @@ Thank you,`;
 
     const dateSelectors = ['.date', '.route-origin .date', '.route-flex .date'];
     const phoneSelectors = ['a[href^="tel:"]', '.contacts__phone', '.company-data-container a[href^="tel:"]'];
-    const emailSelectors = ['a[href^="mailto:"]', '.contacts__email'];
-    const rateSelectors = ['.data-item-total', '.rate-data', '.data-item.data-item-total'];
+    const emailSelectors = [
+      'a[href^="mailto:"]', 
+      '.contacts__email a[href^="mailto:"]',
+      '.contacts__email',
+      '.contact-methods a[href^="mailto:"]',
+      '.contacts a[href^="mailto:"]',
+      '[href^="mailto:"]'
+    ];
+    const rateSelectors = [
+      '.data-item-total', 
+      '.rate-data', 
+      '.data-item.data-item-total',
+      '.rate-details-container .data-item:first-child',
+      '.rate-detail-label:first-child + .rate-data .data-item'
+    ];
     const commoditySelectors = ['.data-item.multiline', '.equipment-data .data-item.multiline', '.equipment-data .data-item'];
     const weightSelectors = ['.equipment-data .data-item:nth-child(4)', '.data-item:contains("Weight")'];
     const referenceSelectors = ['.equipment-data .data-item:last-child', '.data-item:last-child'];
@@ -172,11 +183,19 @@ Thank you,`;
       destination: this.extractTextFromElement(popup, destinationSelectors),
       date: this.extractTextFromElement(popup, dateSelectors),
       phone: this.extractTextFromElement(popup, phoneSelectors),
-      email: this.extractTextFromElement(popup, emailSelectors),
+      email: this.extractEmailFromElement(popup, emailSelectors),
       rate: this.extractTextFromElement(popup, rateSelectors),
       commodity: this.extractTextFromElement(popup, commoditySelectors),
       weight: this.extractTextFromElement(popup, weightSelectors),
-      reference: this.extractTextFromElement(popup, referenceSelectors)
+      reference: this.extractTextFromElement(popup, referenceSelectors),
+      pickupTime: this.extractTextFromElement(popup, [
+        '.route-origin .hours',
+        '.route-origin .date + .hours'
+      ]),
+      deliveryTime: this.extractTextFromElement(popup, [
+        '.route-destination .hours',
+        '.route-destination .date + .hours'
+      ])
     };
   }
 
@@ -184,39 +203,107 @@ Thank you,`;
     for (const selector of selectors) {
       const found = element.querySelector(selector);
       if (found && found.textContent.trim()) {
-        return found.textContent.trim();
+        const text = found.textContent.trim();
+        // Filter out trip miles from rate extraction
+        if (selector.includes('rate') && text.includes('mi')) {
+          continue;
+        }
+        return text;
       }
     }
     return '';
   }
 
+  extractEmailFromElement(element, selectors) {
+    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+
+    const findEmail = () => {
+      // 1️⃣ Check all mailto links
+      const mailto = element.querySelector('a[href^="mailto:"]');
+      if (mailto) return mailto.href.replace('mailto:', '').trim();
+
+      // 2️⃣ Check .contacts__email container text
+      const emailDiv = element.querySelector('.contacts__email');
+      if (emailDiv && emailDiv.textContent.match(emailRegex)) {
+        return emailDiv.textContent.match(emailRegex)[0].trim();
+      }
+
+      // 3️⃣ Fallback: search entire popup text
+      const match = element.textContent.match(emailRegex);
+      if (match) return match[0].trim();
+
+      return '';
+    };
+
+    // Try immediately
+    let email = findEmail();
+    if (email) return email;
+
+    // If not found — retry after small delay (Angular async)
+    [500, 1000, 1500].forEach((delay) => {
+      setTimeout(() => {
+        const delayedEmail = findEmail();
+        if (delayedEmail) {
+          const popup = element.closest('dat-load-details');
+          if (popup) {
+            const existingIcons = popup.querySelector('.quick-dat-icons');
+            if (existingIcons && !existingIcons.querySelector('[title="Email Broker"]')) {
+              const emailIcon = this.createIcon('📧', 'Email Broker', () => {
+                this.openEmailDraft({
+                  ...this.extractLoadData(popup),
+                  email: delayedEmail
+                });
+              });
+              existingIcons.appendChild(emailIcon);
+            }
+          }
+        }
+      }, delay);
+    });
+
+    return '';
+  }
+
   openEmailDraft(loadData) {
-    const subject = `Load Inquiry: ${loadData.origin} to ${loadData.destination}${loadData.date ? ` (${loadData.date})` : ''}`;
+    const subject = `Load Inquiry: ${loadData.origin.trim()} → ${loadData.destination.trim()}${loadData.date ? ` (${loadData.date.trim()})` : ''}`;
     const body = this.createEmailBody(loadData);
     
-    const emailParams = new URLSearchParams({
-      to: loadData.email,
-      subject: subject,
-      body: body
-    });
-    
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&${emailParams.toString()}`;
+    // Use the Gmail URL format that properly displays subject
+    const gmailUrl = `https://mail.google.com/mail/u/0/?fs=1&tf=cm&to=${encodeURIComponent(loadData.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.open(gmailUrl, '_blank');
   }
 
   createEmailBody(loadData) {
     let body = this.settings.emailTemplate;
     
-    // Replace template variables
     body = body.replace(/\{\{ORIGIN\}\}/g, loadData.origin);
     body = body.replace(/\{\{DESTINATION\}\}/g, loadData.destination);
     body = body.replace(/\{\{DATE\}\}/g, loadData.date ? ` (${loadData.date})` : '');
-    body = body.replace(/\{\{COMMODITY\}\}/g, loadData.commodity ? ` (I see: ${loadData.commodity})` : '');
-    body = body.replace(/\{\{RATE\}\}/g, loadData.rate ? ` (Current rate: ${loadData.rate})` : '');
-    body = body.replace(/\{\{WEIGHT\}\}/g, loadData.weight ? ` (Weight: ${loadData.weight})` : '');
-    body = body.replace(/\{\{REFERENCE\}\}/g, loadData.reference ? `Reference ID: ${loadData.reference}` : '');
+    body = body.replace(/\{\{COMMODITY\}\}/g, loadData.commodity ? ` ${loadData.commodity}` : '');
+    body = body.replace(/\{\{RATE\}\}/g, loadData.rate && loadData.rate !== '–' && !loadData.rate.includes('mi') ? `${loadData.rate}` : '');
+    body = body.replace(/\{\{WEIGHT\}\}/g, loadData.weight ? `${loadData.weight}` : '');
+    body = body.replace(/\{\{REFERENCE\}\}/g, loadData.reference ? `${loadData.reference}` : '');
+    
+    // Handle pickup and delivery times
+    const pickupDeliveryInfo = this.formatPickupDeliveryTimes(loadData);
+    body = body.replace(/\{\{PICKUP_DELIVERY\}\}/g, pickupDeliveryInfo);
     
     return body;
+  }
+
+  formatPickupDeliveryTimes(loadData) {
+    const pickupTime = loadData.pickupTime?.trim();
+    const deliveryTime = loadData.deliveryTime?.trim();
+    
+    if (pickupTime && deliveryTime) {
+      return `- Pickup and delivery times (posted: ${pickupTime} - ${deliveryTime})`;
+    } else if (pickupTime) {
+      return `- Pickup and delivery times (posted: ${pickupTime})`;
+    } else if (deliveryTime) {
+      return `- Pickup and delivery times (posted: ${deliveryTime})`;
+    }
+    
+    return '- Pickup and delivery times';
   }
 
   openGoogleMaps(loadData) {
