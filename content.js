@@ -2,6 +2,7 @@
 class DATLoadExtractor {
   constructor() {
     this.setupMessageListener();
+    this.addVisualIcons();
   }
 
   setupMessageListener() {
@@ -12,6 +13,101 @@ class DATLoadExtractor {
         this.handleViewRoute();
       }
     });
+  }
+
+  addVisualIcons() {
+    // Add visual icons to each load popup for better UX
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === 1) { // Element node
+            const loadDetails = node.querySelector ? node.querySelector('dat-load-details') : null;
+            if (loadDetails || node.tagName === 'DAT-LOAD-DETAILS') {
+              this.addIconsToPopup(loadDetails || node);
+            }
+          }
+        });
+      });
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    // Also check for existing popups
+    document.querySelectorAll('dat-load-details').forEach(popup => {
+      this.addIconsToPopup(popup);
+    });
+  }
+
+  addIconsToPopup(popup) {
+    if (popup.dataset.iconsAdded) return; // Already added icons
+    
+    // Find the header actions area
+    const actionsArea = popup.querySelector('.details-header_actions') || 
+                       popup.querySelector('.details-header') ||
+                       popup.querySelector('.details-block');
+    
+    if (!actionsArea) return;
+
+    // Create icons container
+    const iconsContainer = document.createElement('div');
+    iconsContainer.className = 'dat-extension-icons';
+    iconsContainer.style.cssText = `
+      display: flex;
+      gap: 8px;
+      margin-left: 10px;
+      align-items: center;
+    `;
+
+    // Email icon
+    const emailIcon = document.createElement('button');
+    emailIcon.innerHTML = '📧';
+    emailIcon.title = 'Email Broker';
+    emailIcon.style.cssText = `
+      background: #0046E0;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 8px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    `;
+    emailIcon.onclick = (e) => {
+      e.stopPropagation();
+      this.handleEmailBrokerForPopup(popup);
+    };
+
+    // Maps icon
+    const mapsIcon = document.createElement('button');
+    mapsIcon.innerHTML = '🗺️';
+    mapsIcon.title = 'View Route';
+    mapsIcon.style.cssText = `
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 8px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    `;
+    mapsIcon.onclick = (e) => {
+      e.stopPropagation();
+      this.handleViewRouteForPopup(popup);
+    };
+
+    iconsContainer.appendChild(emailIcon);
+    iconsContainer.appendChild(mapsIcon);
+    actionsArea.appendChild(iconsContainer);
+    
+    popup.dataset.iconsAdded = 'true';
   }
 
   extractLoadData() {
@@ -89,13 +185,117 @@ class DATLoadExtractor {
     return '';
   }
 
+  extractLoadDataFromPopup(popup) {
+    // Extract data from a specific popup element
+    const originSelectors = [
+      '.trip-place div:first-child',
+      '.route-origin .city',
+      '.city.city-table',
+      '.route-flex .route-origin .city'
+    ];
+    
+    const destinationSelectors = [
+      '.trip-place div:last-child',
+      '.route-destination .city',
+      '.city.align.city-table',
+      '.route-flex .route-destination .city'
+    ];
+
+    const dateSelectors = [
+      '.date',
+      '.route-origin .date',
+      '.route-flex .date'
+    ];
+
+    const phoneSelectors = [
+      'a[href^="tel:"]',
+      '.contacts__phone',
+      '.company-data-container a[href^="tel:"]'
+    ];
+
+    const emailSelectors = [
+      'a[href^="mailto:"]',
+      '.contacts__email'
+    ];
+
+    const rateSelectors = [
+      '.data-item-total',
+      '.rate-data',
+      '.data-item.data-item-total'
+    ];
+
+    const commoditySelectors = [
+      '.data-item.multiline',
+      '.equipment-data .data-item.multiline',
+      '.equipment-data .data-item'
+    ];
+
+    const referenceSelectors = [
+      '.equipment-data .data-item:last-child',
+      '.data-item:last-child',
+      '.equipment-data .data-item:nth-last-child(2)'
+    ];
+
+    return {
+      origin: this.extractTextFromElement(popup, originSelectors),
+      destination: this.extractTextFromElement(popup, destinationSelectors),
+      date: this.extractTextFromElement(popup, dateSelectors),
+      phone: this.extractTextFromElement(popup, phoneSelectors),
+      email: this.extractTextFromElement(popup, emailSelectors),
+      rate: this.extractTextFromElement(popup, rateSelectors),
+      commodity: this.extractTextFromElement(popup, commoditySelectors),
+      reference: this.extractTextFromElement(popup, referenceSelectors)
+    };
+  }
+
+  extractTextFromElement(element, selectors) {
+    for (const selector of selectors) {
+      const foundElement = element.querySelector(selector);
+      if (foundElement && foundElement.textContent.trim()) {
+        return foundElement.textContent.trim();
+      }
+    }
+    return '';
+  }
+
   handleEmailBroker() {
-    const loadData = this.extractLoadData();
-    this.openEmailDraft(loadData);
+    // Find the closest dat-load-details element to the clicked element
+    const targetPopup = this.findTargetPopup();
+    if (targetPopup) {
+      this.handleEmailBrokerForPopup(targetPopup);
+    } else {
+      const loadData = this.extractLoadData();
+      this.openEmailDraft(loadData);
+    }
   }
 
   handleViewRoute() {
-    const loadData = this.extractLoadData();
+    // Find the closest dat-load-details element to the clicked element
+    const targetPopup = this.findTargetPopup();
+    if (targetPopup) {
+      this.handleViewRouteForPopup(targetPopup);
+    } else {
+      const loadData = this.extractLoadData();
+      this.openGoogleMaps(loadData);
+    }
+  }
+
+  findTargetPopup() {
+    // Try to find the most recently opened or focused popup
+    const popups = document.querySelectorAll('dat-load-details');
+    if (popups.length === 0) return null;
+    
+    // Return the last one (most recently opened)
+    return popups[popups.length - 1];
+  }
+
+  handleEmailBrokerForPopup(popup) {
+    const loadData = this.extractLoadDataFromPopup(popup);
+    this.openEmailDraft(loadData);
+  }
+
+  handleViewRouteForPopup(popup) {
+    const loadData = this.extractLoadDataFromPopup(popup);
     this.openGoogleMaps(loadData);
   }
 
