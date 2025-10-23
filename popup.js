@@ -7,8 +7,9 @@ class QuickDATPopup {
 
   async loadSettings() {
     try {
-      const result = await chrome.storage.sync.get(['emailTemplate']);
+      const result = await chrome.storage.sync.get(['emailTemplate', 'emptyBodyOption']);
       document.getElementById('emailTemplate').value = result.emailTemplate || this.getDefaultTemplate();
+      document.getElementById('emptyBodyOption').checked = result.emptyBodyOption || false;
     } catch (error) {
       console.error('Error loading settings:', error);
     }
@@ -68,7 +69,8 @@ Thank you,`;
     
     try {
       const settings = {
-        emailTemplate: document.getElementById('emailTemplate').value
+        emailTemplate: document.getElementById('emailTemplate').value,
+        emptyBodyOption: document.getElementById('emptyBodyOption').checked
       };
       
       await chrome.storage.sync.set(settings);

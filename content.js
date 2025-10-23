@@ -8,13 +8,15 @@ class QuickDAT {
 
   async loadSettings() {
     try {
-      const result = await chrome.storage.sync.get(['emailTemplate']);
+      const result = await chrome.storage.sync.get(['emailTemplate', 'emptyBodyOption']);
       this.settings = {
-        emailTemplate: result.emailTemplate || this.getDefaultTemplate()
+        emailTemplate: result.emailTemplate || this.getDefaultTemplate(),
+        emptyBodyOption: result.emptyBodyOption || false
       };
     } catch (error) {
       this.settings = {
-        emailTemplate: this.getDefaultTemplate()
+        emailTemplate: this.getDefaultTemplate(),
+        emptyBodyOption: false
       };
     }
   }
@@ -278,11 +280,18 @@ Thank you,`;
 
   openEmailDraft(loadData) {
     const subject = `Load Inquiry: ${loadData.origin.trim()} → ${loadData.destination.trim()}${loadData.date ? ` (${loadData.date.trim()})` : ''}`;
-    const body = this.createEmailBody(loadData);
     
-    // Use the Gmail URL format that properly displays subject
-    const gmailUrl = `https://mail.google.com/mail/u/0/?fs=1&tf=cm&to=${encodeURIComponent(loadData.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(gmailUrl, '_blank');
+    // Check if empty body option is enabled
+    if (this.settings.emptyBodyOption) {
+      // Send email with empty body (subject only)
+      const gmailUrl = `https://mail.google.com/mail/u/0/?fs=1&tf=cm&to=${encodeURIComponent(loadData.email)}&su=${encodeURIComponent(subject)}`;
+      window.open(gmailUrl, '_blank');
+    } else {
+      // Send email with full body
+      const body = this.createEmailBody(loadData);
+      const gmailUrl = `https://mail.google.com/mail/u/0/?fs=1&tf=cm&to=${encodeURIComponent(loadData.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.open(gmailUrl, '_blank');
+    }
   }
 
   createEmailBody(loadData) {
