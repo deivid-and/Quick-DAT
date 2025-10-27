@@ -3,6 +3,7 @@ class QuickDAT {
   constructor() {
     this.debug = false; // Set to true for development debugging
     this.iconsAdded = new Set();
+    this.observer = null; // Track observer to prevent multiple instances
     this.setupObserver();
     this.loadSettings();
   }
@@ -40,6 +41,11 @@ Thank you,`;
   }
 
   setupObserver() {
+    // Prevent multiple observers
+    if (this.observer) {
+      this.observer.disconnect();
+    }
+
     // Watch for new load popups
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
@@ -64,10 +70,21 @@ Thank you,`;
       subtree: true
     });
 
+    this.observer = observer;
+
     // Also check existing popups
     document.querySelectorAll('dat-load-details').forEach(popup => {
       this.addIconsToPopup(popup);
     });
+
+    // Final safety re-check for Angular re-renders
+    setTimeout(() => {
+      document.querySelectorAll('dat-load-details').forEach(popup => {
+        if (!popup.querySelector('.quick-dat-icons')) {
+          this.addIconsToPopup(popup);
+        }
+      });
+    }, 5000);
   }
 
   addIconsToPopup(popup) {
@@ -366,24 +383,30 @@ Thank you,`;
   openEmailDraft(loadData, popup = null) {
     const subject = `Load Inquiry: ${loadData.origin.trim()} → ${loadData.destination.trim()}${loadData.date ? ` (${loadData.date.trim()})` : ''}`;
     
-    // Check if empty body option is enabled
-    if (this.settings.emptyBodyOption) {
-      // Send email with empty body (subject only)
-      const gmailUrl = `https://mail.google.com/mail/u/0/?fs=1&tf=cm&to=${encodeURIComponent(loadData.email)}&su=${encodeURIComponent(subject)}`;
-      window.open(gmailUrl, '_blank');
-    } else {
-      // Send email with full body
-      const body = this.createEmailBody(loadData, popup);
-      const gmailUrl = `https://mail.google.com/mail/u/0/?fs=1&tf=cm&to=${encodeURIComponent(loadData.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.open(gmailUrl, '_blank');
-    }
+    // Add subtle delay to prevent Chrome blocking Gmail links
+    setTimeout(() => {
+      // Check if empty body option is enabled
+      if (this.settings.emptyBodyOption) {
+        // Send email with empty body (subject only)
+        const gmailUrl = `https://mail.google.com/mail/u/0/?fs=1&tf=cm&to=${encodeURIComponent(loadData.email)}&su=${encodeURIComponent(subject)}`;
+        window.open(gmailUrl, '_blank');
+      } else {
+        // Send email with full body
+        const body = this.createEmailBody(loadData, popup);
+        const gmailUrl = `https://mail.google.com/mail/u/0/?fs=1&tf=cm&to=${encodeURIComponent(loadData.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.open(gmailUrl, '_blank');
+      }
+    }, 50);
   }
 
   createEmailBody(loadData, popup = null) {
     let body = this.settings.emailTemplate;
     
-    body = body.replace(/\{\{ORIGIN\}\}/g, loadData.origin);
-    body = body.replace(/\{\{DESTINATION\}\}/g, loadData.destination);
+    // Safe value helper to prevent undefined/null issues
+    const safe = v => v || '';
+    
+    body = body.replace(/\{\{ORIGIN\}\}/g, safe(loadData.origin));
+    body = body.replace(/\{\{DESTINATION\}\}/g, safe(loadData.destination));
     body = body.replace(/\{\{DATE\}\}/g, loadData.date ? ` (${loadData.date})` : '');
     body = body.replace(/\{\{COMMODITY\}\}/g, loadData.commodity ? ` ${loadData.commodity}` : '');
     body = body.replace(/\{\{RATE\}\}/g, loadData.rate && loadData.rate !== '–' && !loadData.rate.includes('mi') ? `${loadData.rate}` : '');
@@ -410,7 +433,11 @@ Thank you,`;
     const origin = encodeURIComponent(loadData.origin);
     const destination = encodeURIComponent(loadData.destination);
     const mapsUrl = `https://www.google.com/maps/dir/${origin}/${destination}`;
-    window.open(mapsUrl, '_blank');
+    
+    // Add subtle delay to prevent Chrome blocking
+    setTimeout(() => {
+      window.open(mapsUrl, '_blank');
+    }, 50);
   }
 }
 

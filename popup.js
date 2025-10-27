@@ -1,6 +1,7 @@
 // Quick-DAT Popup Script
 class QuickDATPopup {
   constructor() {
+    this.saving = false; // Track saving state to prevent double clicks
     this.loadSettings();
     this.setupEventListeners();
   }
@@ -108,7 +109,9 @@ Thank you,`;
   showStatus(message, type) {
     const status = document.getElementById('status');
     status.textContent = message;
-    status.className = `status ${type} show`;
+    status.className = `status ${type}`;
+    status.style.display = 'block'; // Ensure it's visible before showing
+    status.classList.add('show');
     
     setTimeout(() => {
       status.classList.remove('show');
@@ -121,6 +124,10 @@ Thank you,`;
   }
 
   async saveSettings() {
+    // Prevent double clicks with debounce
+    if (this.saving) return;
+    this.saving = true;
+    
     const saveBtn = document.getElementById('saveBtn');
     const status = document.getElementById('status');
     
@@ -143,6 +150,11 @@ Thank you,`;
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = 'Save Settings';
+      
+      // Reset saving state after delay
+      setTimeout(() => {
+        this.saving = false;
+      }, 1500);
     }
   }
 }

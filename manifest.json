@@ -1,8 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Quick-DAT",
+  "short_name": "Quick-DAT",
   "version": "1.0",
   "description": "Quick email and maps integration for DAT load board",
+  "author": "Deividas Andrijauskas",
+  "homepage_url": "https://7solutions.lt",
+  "minimum_chrome_version": "88",
   "permissions": [
     "activeTab",
     "storage"
