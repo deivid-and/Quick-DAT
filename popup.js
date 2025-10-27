@@ -9,7 +9,16 @@ class QuickDATPopup {
     try {
       const result = await chrome.storage.sync.get(['emailTemplate', 'emptyBodyOption']);
       document.getElementById('emailTemplate').value = result.emailTemplate || this.getDefaultTemplate();
-      document.getElementById('emptyBodyOption').checked = result.emptyBodyOption || false;
+      const emptyBodyChecked = result.emptyBodyOption || false;
+      document.getElementById('emptyBodyOption').checked = emptyBodyChecked;
+      
+      // Initialize the email template section visibility
+      this.toggleEmailTemplateSection(emptyBodyChecked);
+      
+      // Auto-resize textarea on load
+      const textarea = document.getElementById('emailTemplate');
+      textarea.style.height = 'auto';
+      textarea.style.height = (textarea.scrollHeight) + 'px';
     } catch (error) {
       console.error('Error loading settings:', error);
     }
@@ -38,6 +47,16 @@ Thank you,`;
       this.saveSettings();
     });
 
+    // Restore default button
+    document.getElementById('restoreBtn').addEventListener('click', () => {
+      this.restoreDefaultTemplate();
+    });
+
+    // Empty body option checkbox
+    document.getElementById('emptyBodyOption').addEventListener('change', (e) => {
+      this.toggleEmailTemplateSection(e.target.checked);
+    });
+
     // Variable tag clicks
     document.querySelectorAll('.variable-tag').forEach(tag => {
       tag.addEventListener('click', () => {
@@ -59,6 +78,46 @@ Thank you,`;
     textarea.value = before + variable + after;
     textarea.focus();
     textarea.setSelectionRange(start + variable.length, start + variable.length);
+    
+    // Auto-resize after insertion
+    textarea.style.height = 'auto';
+    textarea.style.height = (textarea.scrollHeight) + 'px';
+  }
+
+  toggleEmailTemplateSection(isHidden) {
+    const section = document.getElementById('emailTemplateSection');
+    if (isHidden) {
+      section.classList.add('hidden');
+    } else {
+      section.classList.remove('hidden');
+    }
+  }
+
+  restoreDefaultTemplate() {
+    const textarea = document.getElementById('emailTemplate');
+    textarea.value = this.getDefaultTemplate();
+    
+    // Auto-resize after restoration
+    textarea.style.height = 'auto';
+    textarea.style.height = (textarea.scrollHeight) + 'px';
+    
+    // Show success message
+    this.showStatus('Template restored to default!', 'success');
+  }
+
+  showStatus(message, type) {
+    const status = document.getElementById('status');
+    status.textContent = message;
+    status.className = `status ${type} show`;
+    
+    setTimeout(() => {
+      status.classList.remove('show');
+      status.classList.add('hide');
+      setTimeout(() => {
+        status.style.display = 'none';
+        status.classList.remove('hide');
+      }, 300);
+    }, 2000);
   }
 
   async saveSettings() {
@@ -76,19 +135,11 @@ Thank you,`;
       
       await chrome.storage.sync.set(settings);
       
-      status.textContent = 'Settings saved successfully! Please refresh the page to apply the changes.';
-      status.className = 'status success';
-      status.style.display = 'block';
-      
-      setTimeout(() => {
-        status.style.display = 'none';
-      }, 3000);
+      this.showStatus('Settings saved successfully! Please refresh the page to apply the changes.', 'success');
       
     } catch (error) {
       console.error('Error saving settings:', error);
-      status.textContent = 'Error saving settings. Please try again.';
-      status.className = 'status error';
-      status.style.display = 'block';
+      this.showStatus('Error saving settings. Please try again.', 'error');
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = 'Save Settings';

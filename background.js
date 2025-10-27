@@ -1,8 +1,8 @@
 // Quick-DAT Background Script
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener(async () => {
   // Initialize default settings
-  chrome.storage.sync.set({
-        emailTemplate: `Hello,
+  await chrome.storage.sync.set({
+    emailTemplate: `Hello,
 
 I'm interested in the load from {{ORIGIN}} to {{DESTINATION}}{{DATE}}.
 
@@ -15,6 +15,7 @@ Could you please confirm the following:
 
 Reference ID: {{REFERENCE}}
 
-Thank you,`
+Thank you,`,
+    emptyBodyOption: false
   });
 });

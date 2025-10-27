@@ -10,17 +10,19 @@
     }
     
     body {
-      width: 400px;
-      min-height: 500px;
+      width: 380px;
+      min-height: 450px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f8f9fa;
+      background: #f4f6fb;
+      color: #222;
     }
     
     .header {
-      background: #0046e0;
+      background: linear-gradient(135deg, #0046e0, #002f9c);
       color: white;
-      padding: 20px;
+      padding: 18px 16px;
       text-align: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     }
     
     .logo-container {
@@ -38,61 +40,70 @@
     }
     
     .logo-hero {
-      width: 100px;
-      height: 100px;
+      width: 80px;
+      height: 80px;
       filter: brightness(0) invert(1);
     }
 
     .header h1 {
-      font-size: 24px;
+      font-size: 20px;
       font-weight: 600;
+      letter-spacing: 0.3px;
       margin: 0;
     }
     
     .header p {
-      font-size: 14px;
+      font-size: 12px;
       opacity: 0.9;
+      margin-top: 2px;
     }
     
     .content {
-      padding: 20px;
+      padding: 16px;
     }
     
     .section {
       background: white;
       border-radius: 8px;
-      padding: 20px;
+      padding: 16px;
       margin-bottom: 16px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: transform 0.15s ease;
+    }
+    
+    .section:hover {
+      transform: translateY(-2px);
     }
     
     .section h3 {
       color: #0046e0;
-      margin-bottom: 16px;
-      font-size: 16px;
+      margin-bottom: 12px;
+      font-size: 15px;
       font-weight: 600;
     }
     
     .form-group {
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
     
     .form-group label {
       display: block;
-      margin-bottom: 6px;
-      font-weight: 500;
-      color: #333;
-      font-size: 14px;
+      margin-bottom: 4px;
+      font-weight: 600;
+      color: #222;
+      font-size: 12px;
+      letter-spacing: 0.2px;
     }
     
     .form-group input,
     .form-group textarea {
       width: 100%;
-      padding: 10px;
-      border: 2px solid #e1e5e9;
+      padding: 8px;
+      border: 2px solid #dce3eb;
       border-radius: 6px;
-      font-size: 14px;
+      font-size: 13px;
       transition: border-color 0.2s ease;
+      background: #fcfcfc;
     }
     
     .form-group input:focus,
@@ -103,21 +114,22 @@
     
     .form-group textarea {
       resize: vertical;
-      min-height: 120px;
+      min-height: 100px;
       font-family: inherit;
+      line-height: 1.4;
     }
     
     .variables {
       background: #f8f9fa;
-      padding: 12px;
+      padding: 10px;
       border-radius: 6px;
-      margin-top: 8px;
+      margin-top: 6px;
     }
     
     .variables h4 {
-      font-size: 12px;
+      font-size: 11px;
       color: #666;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
@@ -131,24 +143,26 @@
     .variable-tag {
       background: #0046e0;
       color: white;
-      padding: 4px 8px;
+      padding: 3px 8px;
       border-radius: 4px;
       font-size: 11px;
       cursor: pointer;
-      transition: background-color 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0,70,224,0.25);
+      transition: transform 0.15s ease, background 0.15s ease;
     }
     
     .variable-tag:hover {
       background: #003bb8;
+      transform: scale(1.05);
     }
     
     .save-btn {
       background: #0046e0;
       color: white;
       border: none;
-      padding: 12px 24px;
+      padding: 10px 20px;
       border-radius: 6px;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       cursor: pointer;
       width: 100%;
@@ -166,11 +180,23 @@
     
     .status {
       text-align: center;
-      padding: 12px;
+      padding: 10px;
       border-radius: 6px;
-      margin-top: 12px;
-      font-size: 14px;
+      margin-top: 10px;
+      font-size: 13px;
       display: none;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    
+    .status.show {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    .status.hide {
+      opacity: 0;
+      transform: translateY(8px);
     }
     
     .status.success {
@@ -183,76 +209,141 @@
       background: #e3f2fd;
       border: 1px solid #bbdefb;
       border-radius: 6px;
-      padding: 16px;
-      margin-bottom: 16px;
+      padding: 12px;
+      margin-bottom: 12px;
     }
     
     .instructions h4 {
       color: #0046e0;
-      margin-bottom: 8px;
-      font-size: 14px;
+      margin-bottom: 6px;
+      font-size: 13px;
     }
     
     .instructions p {
-      font-size: 13px;
+      font-size: 12px;
       color: #666;
-      line-height: 1.4;
+      line-height: 1.3;
     }
     
     .instruction-steps {
-      margin-top: 10px;
+      margin-top: 8px;
     }
     
     .step {
       display: flex;
       align-items: center;
-      margin: 8px 0;
-      gap: 10px;
+      margin: 6px 0;
+      gap: 8px;
     }
     
     .step-number {
       background: #0046e0;
       color: white;
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: bold;
       flex-shrink: 0;
     }
     
     .icon-examples {
       display: flex;
-      gap: 8px;
-      margin-top: 8px;
-      margin-left: 30px;
+      gap: 6px;
+      margin-top: 6px;
+      margin-left: 26px;
     }
     
     .example-icon {
-      width: 24px;
-      height: 24px;
-      filter: brightness(0);
+      width: 20px;
+      height: 20px;
+      opacity: 0.8;
+      filter: brightness(0) saturate(0);
     }
     
     .checkbox-label {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       cursor: pointer;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
+      gap: 8px;
     }
     
     .checkbox-label input[type="checkbox"] {
-      margin-right: 8px;
+      margin: 0;
+      margin-top: 1px;
+      flex-shrink: 0;
+      width: 14px;
+      height: 14px;
+    }
+    
+    .checkbox-label span {
+      font-size: 12px;
+      line-height: 1.4;
+      font-weight: 500;
     }
     
     .help-text {
-      font-size: 12px;
+      font-size: 11px;
       color: #666;
       margin-top: 4px;
-      margin-left: 24px;
+      margin-left: 0;
+      line-height: 1.3;
+    }
+    
+    .email-template-section {
+      transition: opacity 0.3s ease, max-height 0.3s ease;
+    }
+    
+    .email-template-section.hidden {
+      opacity: 0;
+      max-height: 0;
+      overflow: hidden;
+      margin-bottom: 0;
+      padding: 0;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .restore-btn {
+      background: #6c757d;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      flex: 1;
+    }
+    
+    .restore-btn:hover {
+      background: #5a6268;
+    }
+    
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      color: #999;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #e9ecef;
+    }
+    
+    .footer a {
+      color: #0046e0;
+      text-decoration: none;
+    }
+    
+    .footer a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -292,37 +383,43 @@
       <div class="form-group">
         <label class="checkbox-label">
           <input type="checkbox" id="emptyBodyOption">
-          <span class="checkmark"></span>
-          Send emails with empty body (subject only)
+          <span>Send emails with empty body (subject only)</span>
         </label>
-        <p class="help-text">When enabled, emails will only include the subject line with load details.</p>
+        <p class="help-text">When enabled, emails will only include the subject line with load details. The email template section will be hidden.</p>
       </div>
     </div>
     
-    <div class="section">
+    <div class="section email-template-section" id="emailTemplateSection">
       <h3>Email Template</h3>
       <div class="form-group">
         <label for="emailTemplate">Customize your email template</label>
-        <textarea id="emailTemplate" placeholder="Enter your email template..."></textarea>
+        <textarea id="emailTemplate" placeholder="Enter your email template..." oninput="this.style.height='auto';this.style.height=(this.scrollHeight)+'px'"></textarea>
             <div class="variables">
               <h4>Available Variables (click to insert)</h4>
               <div class="variable-tags">
-                <span class="variable-tag" data-var="{{ORIGIN}}">Origin</span>
-                <span class="variable-tag" data-var="{{DESTINATION}}">Destination</span>
-                <span class="variable-tag" data-var="{{DATE}}">Date</span>
-                <span class="variable-tag" data-var="{{PICKUP_TIME}}">Pickup Time</span>
-                <span class="variable-tag" data-var="{{DELIVERY_TIME}}">Delivery Time</span>
-                <span class="variable-tag" data-var="{{RATE}}">Rate</span>
-                <span class="variable-tag" data-var="{{COMMODITY}}">Commodity</span>
-                <span class="variable-tag" data-var="{{WEIGHT}}">Weight</span>
-                <span class="variable-tag" data-var="{{REFERENCE}}">Reference</span>
+                <span class="variable-tag" data-var="{{ORIGIN}}" title="Origin city">Origin</span>
+                <span class="variable-tag" data-var="{{DESTINATION}}" title="Destination city">Destination</span>
+                <span class="variable-tag" data-var="{{DATE}}" title="Load date">Date</span>
+                <span class="variable-tag" data-var="{{PICKUP_TIME}}" title="Pickup time details">Pickup Time</span>
+                <span class="variable-tag" data-var="{{DELIVERY_TIME}}" title="Delivery time details">Delivery Time</span>
+                <span class="variable-tag" data-var="{{RATE}}" title="Load rate">Rate</span>
+                <span class="variable-tag" data-var="{{COMMODITY}}" title="Commodity type">Commodity</span>
+                <span class="variable-tag" data-var="{{WEIGHT}}" title="Load weight">Weight</span>
+                <span class="variable-tag" data-var="{{REFERENCE}}" title="Reference ID">Reference</span>
               </div>
             </div>
       </div>
     </div>
     
-    <button class="save-btn" id="saveBtn">Save Settings</button>
+    <div class="button-group">
+      <button class="restore-btn" id="restoreBtn">Restore Default</button>
+      <button class="save-btn" id="saveBtn">Save Settings</button>
+    </div>
     <div class="status" id="status"></div>
+    
+    <div class="footer">
+      Quick-DAT © 2025 — <a href="https://7solutions.lt" target="_blank">7Solutions</a>
+    </div>
   </div>
   
   <script src="popup.js"></script>
