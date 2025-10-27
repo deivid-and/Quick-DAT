@@ -6,11 +6,12 @@ chrome.runtime.onInstalled.addListener(() => {
 
 I'm interested in the load from {{ORIGIN}} to {{DESTINATION}}{{DATE}}.
 
-Could you please provide the following details:
-{{PICKUP_DELIVERY}}
-- Weight and commodity details (currently shows: {{COMMODITY}} , {{WEIGHT}})
+Could you please confirm the following:
+- Pickup time ({{PICKUP_TIME}})
+- Delivery time ({{DELIVERY_TIME}})
+- Weight and commodity ({{COMMODITY}}, {{WEIGHT}})
 - Any special requirements
-- Your best rate (posted rate: {{RATE}})
+- Your best rate (posted: {{RATE}})
 
 Reference ID: {{REFERENCE}}
 

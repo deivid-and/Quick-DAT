@@ -1,6 +1,7 @@
 // Quick-DAT Content Script
 class QuickDAT {
   constructor() {
+    this.debug = false; // Set to true for development debugging
     this.iconsAdded = new Set();
     this.setupObserver();
     this.loadSettings();
@@ -10,8 +11,8 @@ class QuickDAT {
     try {
       const result = await chrome.storage.sync.get(['emailTemplate', 'emptyBodyOption']);
       this.settings = {
-        emailTemplate: result.emailTemplate || this.getDefaultTemplate(),
-        emptyBodyOption: result.emptyBodyOption || false
+        emailTemplate: result.emailTemplate ?? this.getDefaultTemplate(),
+        emptyBodyOption: result.emptyBodyOption ?? false
       };
     } catch (error) {
       this.settings = {
@@ -26,11 +27,12 @@ class QuickDAT {
 
 I'm interested in the load from {{ORIGIN}} to {{DESTINATION}}{{DATE}}.
 
-Could you please provide the following details:
-{{PICKUP_DELIVERY}}
-- Weight and commodity details (currently shows: {{COMMODITY}} , {{WEIGHT}})
+Could you please confirm the following:
+- Pickup time ({{PICKUP_TIME}})
+- Delivery time ({{DELIVERY_TIME}})
+- Weight and commodity ({{COMMODITY}}, {{WEIGHT}})
 - Any special requirements
-- Your best rate (posted rate: {{RATE}})
+- Your best rate (posted: {{RATE}})
 
 Reference ID: {{REFERENCE}}
 
@@ -75,7 +77,7 @@ Thank you,`;
     if (!loadData.origin || !loadData.destination) return;
 
     // Find the header actions area
-    const actionsArea = popup.querySelector('.details-header_actions');
+    const actionsArea = popup.querySelector('.details-header_actions, .details-header, .details-actions');
     if (!actionsArea) return;
 
     // Create icons container
@@ -95,7 +97,7 @@ Thank you,`;
     // Add Email icon only if email exists
     if (loadData.email) {
       const emailIcon = this.createIcon('mail', 'Email Broker', () => {
-        this.openEmailDraft(loadData);
+        this.openEmailDraft(loadData, popup);
       });
       iconsContainer.appendChild(emailIcon);
     }
@@ -192,7 +194,10 @@ Thank you,`;
     const weightSelectors = ['.equipment-data .data-item:nth-child(4)', '.data-item:contains("Weight")'];
     const referenceSelectors = ['.equipment-data .data-item:last-child', '.data-item:last-child'];
 
-    return {
+    const pickupTime = this.extractTimeWithRetry(popup, 'pickup');
+    const deliveryTime = this.extractTimeWithRetry(popup, 'delivery');
+
+    const loadData = {
       origin: this.extractTextFromElement(popup, originSelectors),
       destination: this.extractTextFromElement(popup, destinationSelectors),
       date: this.extractTextFromElement(popup, dateSelectors),
@@ -202,29 +207,109 @@ Thank you,`;
       commodity: this.extractTextFromElement(popup, commoditySelectors),
       weight: this.extractTextFromElement(popup, weightSelectors),
       reference: this.extractTextFromElement(popup, referenceSelectors),
-      pickupTime: this.extractTextFromElement(popup, [
-        '.route-origin .hours',
-        '.route-origin .date + .hours'
-      ]),
-      deliveryTime: this.extractTextFromElement(popup, [
-        '.route-destination .hours',
-        '.route-destination .date + .hours'
-      ])
+      pickupTime,
+      deliveryTime
     };
+
+    // Debug log for pickup/delivery times
+    if (this.debug) {
+      console.log('Quick-DAT: Debug - Looking for times in popup:', popup);
+      console.log('Quick-DAT: Debug - Found pickup elements:', popup.querySelectorAll('.route-origin .hours'));
+      console.log('Quick-DAT: Debug - Found delivery elements:', popup.querySelectorAll('.route-destination .hours'));
+      console.log('Quick-DAT: Debug - All hours elements:', popup.querySelectorAll('.hours'));
+      
+      if (pickupTime || deliveryTime) {
+        console.log('Quick-DAT: Extracted times:', { pickupTime, deliveryTime });
+      } else {
+        console.log('Quick-DAT: No times extracted - checking all hours elements');
+        popup.querySelectorAll('.hours').forEach((el, index) => {
+          console.log(`Quick-DAT: Hours element ${index}:`, {
+            textContent: el.textContent.trim(),
+            innerHTML: el.innerHTML.trim(),
+            classes: el.className
+          });
+        });
+      }
+    }
+
+    return loadData;
   }
 
   extractTextFromElement(element, selectors) {
     for (const selector of selectors) {
       const found = element.querySelector(selector);
-      if (found && found.textContent.trim()) {
-        const text = found.textContent.trim();
-        // Filter out trip miles from rate extraction
-        if (selector.includes('rate') && text.includes('mi')) {
-          continue;
+      if (found) {
+        // Try textContent first, then innerHTML as fallback
+        let text = found.textContent.trim();
+        if (!text) {
+          text = found.innerHTML.trim();
         }
-        return text;
+        
+        if (text) {
+          // Filter out trip miles from rate extraction
+          if (selector.includes('rate') && text.includes('mi')) {
+            continue;
+          }
+          // Debug for time-related selectors
+          if (selector.includes('hours') && this.debug) {
+            console.log(`Quick-DAT: Found time with selector "${selector}":`, text);
+          }
+          return text;
+        }
       }
     }
+    return '';
+  }
+
+  extractTimeWithRetry(popup, type) {
+    const base = type === 'pickup' ? '.route-origin' : '.route-destination';
+
+    const extract = () => {
+      const dateEl = popup.querySelector(`${base} .date`);
+      const hoursEls = Array.from(popup.querySelectorAll(`${base} .hours`))
+        .map(el => el.textContent.replace(/^@/, '').replace(/\s+/g, ' ').replace(/\u00A0/g, ' ').trim())
+        .filter(t => t && !/^$/.test(t)); // remove empty entries
+
+      let parts = [];
+      if (dateEl && dateEl.textContent.trim()) {
+        const date = dateEl.textContent.replace(/\s+/g, ' ').replace(/\u00A0/g, ' ').trim();
+        parts.push(date);
+      }
+
+      // Choose the best time candidate
+      if (hoursEls.length > 0) {
+        // For pickup: take first non-empty
+        // For delivery: take last non-empty
+        const chosen = type === 'pickup' ? hoursEls[0] : hoursEls[hoursEls.length - 1];
+        parts.push(chosen);
+      }
+
+      const combined = parts.join('\n').trim();
+      return combined;
+    };
+
+    let time = extract();
+    if (time) return time;
+
+    const delays = [300, 800, 1500, 2500, 4000];
+    for (const delay of delays) {
+      setTimeout(() => {
+        requestAnimationFrame(() => {
+          const delayedTime = extract();
+          if (delayedTime) {
+            const popupRef = popup.closest('dat-load-details');
+            if (!popupRef) return;
+            const key = `${type}Time`;
+            if (popupRef.dataset[key] !== delayedTime) {
+              popupRef.dataset[key] = delayedTime;
+              if (this.debug)
+                console.log(`Quick-DAT: Late-found ${type} time after ${delay}ms:`, delayedTime);
+            }
+          }
+        });
+      }, delay);
+    }
+
     return '';
   }
 
@@ -278,7 +363,7 @@ Thank you,`;
     return '';
   }
 
-  openEmailDraft(loadData) {
+  openEmailDraft(loadData, popup = null) {
     const subject = `Load Inquiry: ${loadData.origin.trim()} → ${loadData.destination.trim()}${loadData.date ? ` (${loadData.date.trim()})` : ''}`;
     
     // Check if empty body option is enabled
@@ -288,13 +373,13 @@ Thank you,`;
       window.open(gmailUrl, '_blank');
     } else {
       // Send email with full body
-      const body = this.createEmailBody(loadData);
+      const body = this.createEmailBody(loadData, popup);
       const gmailUrl = `https://mail.google.com/mail/u/0/?fs=1&tf=cm&to=${encodeURIComponent(loadData.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       window.open(gmailUrl, '_blank');
     }
   }
 
-  createEmailBody(loadData) {
+  createEmailBody(loadData, popup = null) {
     let body = this.settings.emailTemplate;
     
     body = body.replace(/\{\{ORIGIN\}\}/g, loadData.origin);
@@ -305,27 +390,16 @@ Thank you,`;
     body = body.replace(/\{\{WEIGHT\}\}/g, loadData.weight ? `${loadData.weight}` : '');
     body = body.replace(/\{\{REFERENCE\}\}/g, loadData.reference ? `${loadData.reference}` : '');
     
-    // Handle pickup and delivery times
-    const pickupDeliveryInfo = this.formatPickupDeliveryTimes(loadData);
-    body = body.replace(/\{\{PICKUP_DELIVERY\}\}/g, pickupDeliveryInfo);
+    // Handle pickup and delivery times separately - check for late-loaded times
+    const pickupTime = loadData.pickupTime || (popup ? popup.dataset.pickupTime : '') || '';
+    const deliveryTime = loadData.deliveryTime || (popup ? popup.dataset.deliveryTime : '') || '';
+    
+    body = body.replace(/\{\{PICKUP_TIME\}\}/g, pickupTime);
+    body = body.replace(/\{\{DELIVERY_TIME\}\}/g, deliveryTime);
     
     return body;
   }
 
-  formatPickupDeliveryTimes(loadData) {
-    const pickupTime = loadData.pickupTime?.trim();
-    const deliveryTime = loadData.deliveryTime?.trim();
-    
-    if (pickupTime && deliveryTime) {
-      return `- Pickup and delivery times (posted: ${pickupTime} - ${deliveryTime})`;
-    } else if (pickupTime) {
-      return `- Pickup and delivery times (posted: ${pickupTime})`;
-    } else if (deliveryTime) {
-      return `- Pickup and delivery times (posted: ${deliveryTime})`;
-    }
-    
-    return '- Pickup and delivery times';
-  }
 
   openGoogleMaps(loadData) {
     if (!loadData.origin || !loadData.destination) {
