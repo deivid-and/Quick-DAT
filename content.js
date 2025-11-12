@@ -381,7 +381,13 @@ Thank you,`;
   }
 
   openEmailDraft(loadData, popup = null) {
-    const subject = `Load Inquiry: ${loadData.origin.trim()} → ${loadData.destination.trim()}${loadData.date ? ` (${loadData.date.trim()})` : ''}`;
+    // Build subject with reference ID if present
+    let subject = `Load Inquiry: ${loadData.origin.trim()} → ${loadData.destination.trim()}${loadData.date ? ` (${loadData.date.trim()})` : ''}`;
+    
+    // Add reference ID if present
+    if (loadData.reference && loadData.reference.trim()) {
+      subject += ` [Ref: ${loadData.reference.trim()}]`;
+    }
     
     // Add subtle delay to prevent Chrome blocking Gmail links
     setTimeout(() => {
