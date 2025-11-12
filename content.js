@@ -384,9 +384,16 @@ Thank you,`;
     // Build subject with reference ID if present
     let subject = `Load Inquiry: ${loadData.origin.trim()} → ${loadData.destination.trim()}${loadData.date ? ` (${loadData.date.trim()})` : ''}`;
     
-    // Add reference ID if present
-    if (loadData.reference && loadData.reference.trim()) {
-      subject += ` [Ref: ${loadData.reference.trim()}]`;
+    // Add reference ID if present and valid (not empty, not "-", not "–", not "—")
+    const reference = loadData.reference ? loadData.reference.trim() : '';
+    const isValidReference = reference && 
+                             reference !== '-' && 
+                             reference !== '–' && 
+                             reference !== '—' &&
+                             reference.length > 0;
+    
+    if (isValidReference) {
+      subject += ` [Ref: ${reference}]`;
     }
     
     // Add subtle delay to prevent Chrome blocking Gmail links
