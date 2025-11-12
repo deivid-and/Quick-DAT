@@ -106,9 +106,8 @@ Thank you,
 
 ### Permissions
 The extension requires minimal permissions:
-- `activeTab` – To access the current DAT page  
-- `storage` – To save your email template preferences  
-- `host_permissions` – To integrate with DAT, Gmail, and Google Maps  
+- `storage` – To save your email template preferences locally  
+- `host_permissions` – To inject content script into DAT load board pages (one.dat.com only)  
 
 ### How It Works
 - Content script injects functionality into DAT pages  

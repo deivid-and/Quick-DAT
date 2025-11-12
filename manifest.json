@@ -8,13 +8,10 @@
   "homepage_url": "https://7solutions.lt",
   "minimum_chrome_version": "88",
   "permissions": [
-    "activeTab",
     "storage"
   ],
   "host_permissions": [
-    "https://one.dat.com/*",
-    "https://mail.google.com/*",
-    "https://maps.google.com/*"
+    "https://one.dat.com/*"
   ],
   "content_scripts": [
     {
