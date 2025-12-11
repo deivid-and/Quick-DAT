@@ -381,6 +381,29 @@ Thank you,`;
   }
 
   openEmailDraft(loadData, popup = null) {
+    // Re-extract reference from popup if available (Angular async loading)
+    // The reference may not be populated when icons are first added
+    if (popup) {
+      const equipmentContainer = popup.querySelector('.data-container');
+      if (equipmentContainer) {
+        const labels = Array.from(equipmentContainer.querySelectorAll('.equipment-label .data-label'));
+        const dataItems = Array.from(equipmentContainer.querySelectorAll('.equipment-data .data-item'));
+        
+        const refLabelIndex = labels.findIndex(label => {
+          const text = label.textContent.trim().toLowerCase();
+          return text.includes('reference');
+        });
+        
+        if (refLabelIndex !== -1 && dataItems[refLabelIndex]) {
+          const freshReference = dataItems[refLabelIndex].textContent.trim();
+          // Only use if it's a valid reference (not dash)
+          if (freshReference && freshReference !== '–' && freshReference !== '-' && freshReference !== '—') {
+            loadData.reference = freshReference;
+          }
+        }
+      }
+    }
+    
     // Build subject with reference ID if present
     let subject = `Load Inquiry: ${loadData.origin.trim()} → ${loadData.destination.trim()}${loadData.date ? ` (${loadData.date.trim()})` : ''}`;
     
