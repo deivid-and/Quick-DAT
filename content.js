@@ -2,24 +2,41 @@
 class QuickDAT {
   constructor() {
     this.debug = false; // Set to true for development debugging
+    this.settings = {
+      emailTemplate: this.getDefaultTemplate(),
+      emptyBodyOption: true,
+      rpmHighlightEnabled: false,
+      targetRpm: 2.0
+    };
     this.iconsAdded = new Set();
     this.observer = null; // Track observer to prevent multiple instances
+    this.rpmStylesInjected = false;
     this.setupObserver();
     this.loadSettings();
   }
 
   async loadSettings() {
     try {
-      const result = await chrome.storage.sync.get(['emailTemplate', 'emptyBodyOption']);
+      const result = await chrome.storage.sync.get(['emailTemplate', 'emptyBodyOption', 'rpmHighlightEnabled', 'targetRpm']);
       this.settings = {
         emailTemplate: result.emailTemplate ?? this.getDefaultTemplate(),
-        emptyBodyOption: result.emptyBodyOption ?? true
+        emptyBodyOption: result.emptyBodyOption ?? true,
+        rpmHighlightEnabled: result.rpmHighlightEnabled ?? false,
+        targetRpm: typeof result.targetRpm === 'number' ? result.targetRpm : 2.0
       };
     } catch (error) {
       this.settings = {
         emailTemplate: this.getDefaultTemplate(),
-        emptyBodyOption: true
+        emptyBodyOption: true,
+        rpmHighlightEnabled: false,
+        targetRpm: 2.0
       };
+    }
+
+    // Apply RPM highlighting if enabled after settings load
+    if (this.settings.rpmHighlightEnabled) {
+      this.highlightLoadRows();
+      document.querySelectorAll('dat-load-details').forEach(popup => this.addPopupRpmBadge(popup));
     }
   }
 
@@ -60,6 +77,13 @@ Thank you,`;
             if (loadDetails) {
               loadDetails.forEach(popup => this.addIconsToPopup(popup));
             }
+            // Scan for rate cells to apply RPM highlighting
+            if (node.querySelectorAll) {
+              const rateCells = node.querySelectorAll('[data-test="load-rate-cell"]');
+              if (rateCells.length > 0) {
+                this.highlightLoadRows(rateCells);
+              }
+            }
           }
         });
       });
@@ -77,6 +101,12 @@ Thank you,`;
       this.addIconsToPopup(popup);
     });
 
+    // Initial pass for RPM highlighting on existing rows
+    const initialRateCells = document.querySelectorAll('[data-test="load-rate-cell"]');
+    if (initialRateCells.length > 0) {
+      this.highlightLoadRows(initialRateCells);
+    }
+
     // Final safety re-check for Angular re-renders
     setTimeout(() => {
       document.querySelectorAll('dat-load-details').forEach(popup => {
@@ -84,6 +114,10 @@ Thank you,`;
           this.addIconsToPopup(popup);
         }
       });
+      const delayedRateCells = document.querySelectorAll('[data-test="load-rate-cell"]');
+      if (delayedRateCells.length > 0) {
+        this.highlightLoadRows(delayedRateCells);
+      }
     }, 5000);
   }
 
@@ -122,6 +156,9 @@ Thank you,`;
     // Insert icons into actions area
     actionsArea.appendChild(iconsContainer);
     this.iconsAdded.add(popup);
+
+    // Add RPM badge in popup if applicable
+    this.addPopupRpmBadge(popup);
   }
 
   createIcon(iconType, title, onClick) {
@@ -384,6 +421,72 @@ Thank you,`;
     });
 
     return '';
+  }
+
+  ensureRpmStyles() {
+    if (this.rpmStylesInjected) return;
+    const style = document.createElement('style');
+    style.textContent = `
+      .quick-dat-rpm-hit {
+        background: #e7f5ec !important;
+        border: 1px solid #c6e7d3 !important;
+        border-radius: 6px;
+        padding: 2px 6px;
+      }
+    `;
+    document.head.appendChild(style);
+    this.rpmStylesInjected = true;
+  }
+
+  parseRpmFromCell(cell) {
+    if (!cell) return null;
+    const text = cell.querySelector('.calculated-rate span')?.textContent?.trim() || '';
+    const match = text.match(/\$?\s*([\d.,]+)\s*\*?\/\s*mi/i);
+    if (!match) return null;
+    const value = parseFloat(match[1].replace(/,/g, ''));
+    return Number.isFinite(value) ? value : null;
+  }
+
+  applyRpmHighlightToCell(cell) {
+    const rateContainer = cell.querySelector('.rate-container') || cell;
+    if (!this.settings.rpmHighlightEnabled) {
+      rateContainer.classList.remove('quick-dat-rpm-hit');
+      return;
+    }
+    const rpm = this.parseRpmFromCell(cell);
+    const target = this.settings.targetRpm ?? 2.0;
+
+    if (!rpm || rpm < target) {
+      rateContainer.classList.remove('quick-dat-rpm-hit');
+      return;
+    }
+
+    this.ensureRpmStyles();
+    rateContainer.classList.add('quick-dat-rpm-hit');
+  }
+
+  highlightLoadRows(rateCells = null) {
+    if (!this.settings.rpmHighlightEnabled) return;
+    const cells = rateCells ? Array.from(rateCells) : Array.from(document.querySelectorAll('[data-test="load-rate-cell"]'));
+    cells.forEach(cell => this.applyRpmHighlightToCell(cell));
+  }
+
+  addPopupRpmBadge(popup) {
+    if (!this.settings.rpmHighlightEnabled) return;
+    const rateCell = popup.querySelector('[data-test="load-rate-cell"]');
+    const rpm = this.parseRpmFromCell(rateCell);
+    const target = this.settings.targetRpm ?? 2.0;
+
+    const rateContainer = rateCell ? (rateCell.querySelector('.rate-container') || rateCell) : null;
+    if (!rateContainer) return;
+    
+    rateContainer.classList.remove('quick-dat-rpm-hit');
+    if (!rpm || rpm < target) {
+      return;
+    }
+
+    this.ensureRpmStyles();
+    rateContainer.classList.add('quick-dat-rpm-hit');
   }
 
   openEmailDraft(loadData, popup = null) {

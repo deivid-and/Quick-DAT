@@ -8,10 +8,12 @@ class QuickDATPopup {
 
   async loadSettings() {
     try {
-      const result = await chrome.storage.sync.get(['emailTemplate', 'emptyBodyOption']);
+      const result = await chrome.storage.sync.get(['emailTemplate', 'emptyBodyOption', 'rpmHighlightEnabled', 'targetRpm']);
       document.getElementById('emailTemplate').value = result.emailTemplate || this.getDefaultTemplate();
       const emptyBodyChecked = result.emptyBodyOption ?? true;
       document.getElementById('emptyBodyOption').checked = emptyBodyChecked;
+      document.getElementById('rpmHighlightEnabled').checked = result.rpmHighlightEnabled ?? false;
+      document.getElementById('targetRpm').value = typeof result.targetRpm === 'number' ? result.targetRpm.toFixed(2) : '2.00';
       
       // Initialize the email template section visibility
       this.toggleEmailTemplateSection(emptyBodyChecked);
@@ -137,7 +139,9 @@ Thank you,`;
     try {
       const settings = {
         emailTemplate: document.getElementById('emailTemplate').value,
-        emptyBodyOption: document.getElementById('emptyBodyOption').checked
+        emptyBodyOption: document.getElementById('emptyBodyOption').checked,
+        rpmHighlightEnabled: document.getElementById('rpmHighlightEnabled').checked,
+        targetRpm: parseFloat(document.getElementById('targetRpm').value) || 0
       };
       
       await chrome.storage.sync.set(settings);
