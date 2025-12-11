@@ -480,6 +480,20 @@ Thank you,`;
     return userOrigin;
   }
 
+  extractUserSearchDestination() {
+    // Extract user's search destination from DAT header
+    // Find the first dat-search-location with formcontrolname="destination"
+    const destinationLocation = document.querySelector('dat-search-location[formcontrolname="destination"]');
+    if (!destinationLocation) return '';
+
+    // Find the input with data-test="destination-input" and formcontrolname="locationInput"
+    const destinationInput = destinationLocation.querySelector('input[data-test="destination-input"][formcontrolname="locationInput"]');
+    if (!destinationInput) return '';
+
+    const userDestination = destinationInput.value ? destinationInput.value.trim() : '';
+    return userDestination;
+  }
+
   openGoogleMaps(loadData) {
     if (!loadData.origin || !loadData.destination) {
       alert('Could not extract origin and destination from the load details.');
@@ -488,9 +502,17 @@ Thank you,`;
 
     // Try to get user's search origin from header
     const userOrigin = this.extractUserSearchOrigin();
+    const userDestination = this.extractUserSearchDestination();
     
     let mapsUrl;
-    if (userOrigin) {
+    if (userOrigin && userDestination) {
+      // Route: User Origin → Load Origin → Load Destination → User Destination
+      const start = encodeURIComponent(userOrigin);
+      const waypoint = encodeURIComponent(loadData.origin);
+      const destination = encodeURIComponent(loadData.destination);
+      const end = encodeURIComponent(userDestination);
+      mapsUrl = `https://www.google.com/maps/dir/${start}/${waypoint}/${destination}/${end}`;
+    } else if (userOrigin) {
       // Route: User Origin → Load Origin → Load Destination
       const start = encodeURIComponent(userOrigin);
       const waypoint = encodeURIComponent(loadData.origin);
