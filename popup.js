@@ -2,6 +2,7 @@
 class QuickDATPopup {
   constructor() {
     this.saving = false; // Track saving state to prevent double clicks
+    this.templateCollapsed = true;
     this.loadSettings();
     this.setupEventListeners();
   }
@@ -17,6 +18,7 @@ class QuickDATPopup {
       
       // Initialize the email template section visibility
       this.toggleEmailTemplateSection(emptyBodyChecked);
+      this.updateTemplateCollapse(this.templateCollapsed);
       
       // Auto-resize textarea on load
       const textarea = document.getElementById('emailTemplate');
@@ -54,6 +56,12 @@ Thank you,`;
     document.getElementById('restoreBtn').addEventListener('click', () => {
       this.restoreDefaultTemplate();
     });
+    
+    // Template collapse toggle
+    document.getElementById('toggleTemplateBtn').addEventListener('click', () => {
+      this.templateCollapsed = !this.templateCollapsed;
+      this.updateTemplateCollapse(this.templateCollapsed);
+    });
 
     // Empty body option checkbox
     document.getElementById('emptyBodyOption').addEventListener('change', (e) => {
@@ -89,10 +97,38 @@ Thank you,`;
 
   toggleEmailTemplateSection(isHidden) {
     const section = document.getElementById('emailTemplateSection');
+    const toggleBtn = document.getElementById('toggleTemplateBtn');
     if (isHidden) {
       section.classList.add('hidden');
+      toggleBtn.disabled = true;
+      toggleBtn.textContent = 'Hidden';
     } else {
       section.classList.remove('hidden');
+      toggleBtn.disabled = false;
+      // When user wants the template, auto-expand it
+      this.templateCollapsed = false;
+      this.updateTemplateCollapse(this.templateCollapsed);
+    }
+  }
+
+  updateTemplateCollapse(collapsed) {
+    const section = document.getElementById('emailTemplateSection');
+    const toggleBtn = document.getElementById('toggleTemplateBtn');
+    if (!section || !toggleBtn) return;
+
+    if (section.classList.contains('hidden')) {
+      toggleBtn.textContent = 'Hidden';
+      return;
+    }
+
+    if (collapsed) {
+      section.classList.add('collapsed');
+      toggleBtn.textContent = 'Expand';
+      toggleBtn.setAttribute('aria-expanded', 'false');
+    } else {
+      section.classList.remove('collapsed');
+      toggleBtn.textContent = 'Collapse';
+      toggleBtn.setAttribute('aria-expanded', 'true');
     }
   }
 
