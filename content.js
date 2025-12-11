@@ -344,7 +344,13 @@ Thank you,`;
         return emailDiv.textContent.match(emailRegex)[0].trim();
       }
 
-      // 3️⃣ Fallback: search entire popup text
+      // 3️⃣ Check comments/notes section specifically
+      const notesSection = element.querySelector('.notes-contents, .notes-contents.multiline');
+      if (notesSection && notesSection.textContent.match(emailRegex)) {
+        return notesSection.textContent.match(emailRegex)[0].trim();
+      }
+
+      // 4️⃣ Fallback: search entire popup text
       const match = element.textContent.match(emailRegex);
       if (match) return match[0].trim();
 
