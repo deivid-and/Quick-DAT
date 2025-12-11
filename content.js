@@ -13,12 +13,12 @@ class QuickDAT {
       const result = await chrome.storage.sync.get(['emailTemplate', 'emptyBodyOption']);
       this.settings = {
         emailTemplate: result.emailTemplate ?? this.getDefaultTemplate(),
-        emptyBodyOption: result.emptyBodyOption ?? false
+        emptyBodyOption: result.emptyBodyOption ?? true
       };
     } catch (error) {
       this.settings = {
         emailTemplate: this.getDefaultTemplate(),
-        emptyBodyOption: false
+        emptyBodyOption: true
       };
     }
   }

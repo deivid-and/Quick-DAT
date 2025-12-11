@@ -10,7 +10,7 @@ class QuickDATPopup {
     try {
       const result = await chrome.storage.sync.get(['emailTemplate', 'emptyBodyOption']);
       document.getElementById('emailTemplate').value = result.emailTemplate || this.getDefaultTemplate();
-      const emptyBodyChecked = result.emptyBodyOption || false;
+      const emptyBodyChecked = result.emptyBodyOption ?? true;
       document.getElementById('emptyBodyOption').checked = emptyBodyChecked;
       
       // Initialize the email template section visibility

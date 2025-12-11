@@ -16,6 +16,6 @@ Could you please confirm the following:
 Reference ID: {{REFERENCE}}
 
 Thank you,`,
-    emptyBodyOption: false
+    emptyBodyOption: true
   });
 });
