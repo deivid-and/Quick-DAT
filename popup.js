@@ -182,7 +182,7 @@ Thank you,`;
       
       await chrome.storage.sync.set(settings);
       
-      this.showStatus('Settings saved successfully! Please refresh the page to apply the changes.', 'success');
+      this.showStatus('Settings saved successfully!', 'success');
       
     } catch (error) {
       console.error('Error saving settings:', error);

@@ -1,4 +1,70 @@
 // Quick-DAT Content Script
+const SELECTORS = {
+  popup: {
+    root: 'dat-load-details',
+    actionsArea: [
+      '[data-test="details-header-actions"]',
+      '.details-header_actions',
+      '.details-header',
+      '.details-actions'
+    ],
+    time: {
+      originBase: '[data-test="route-origin"], .route-origin',
+      destinationBase: '[data-test="route-destination"], .route-destination',
+      date: '[data-test="route-date"], .date',
+      hours: '.hours'
+    },
+    origin: [
+      '[data-test="route-origin"] .city',
+      '.trip-place div:first-child',
+      '.route-origin .city',
+      '.city.city-table',
+      '.route-flex .route-origin .city'
+    ],
+    destination: [
+      '[data-test="route-destination"] .city',
+      '.trip-place div:last-child',
+      '.route-destination .city',
+      '.city.align.city-table',
+      '.route-flex .route-destination .city'
+    ],
+    date: ['[data-test="route-date"]', '.date', '.route-origin .date', '.route-flex .date'],
+    phone: ['a[href^="tel:"]', '.contacts__phone', '.company-data-container a[href^="tel:"]'],
+    email: [
+      'a[href^="mailto:"]',
+      '.contacts__email a[href^="mailto:"]',
+      '.contacts__email',
+      '.contact-methods a[href^="mailto:"]',
+      '.contacts a[href^="mailto:"]',
+      '[href^="mailto:"]'
+    ],
+    rate: [
+      '[data-test="load-rate-cell"] .rate-container',
+      '.data-item-total',
+      '.rate-data',
+      '.data-item.data-item-total',
+      '.rate-details-container .data-item:first-child',
+      '.rate-detail-label:first-child + .rate-data .data-item'
+    ],
+    commodity: ['.data-item.multiline', '.equipment-data .data-item.multiline', '.equipment-data .data-item'],
+    weight: ['.equipment-data .data-item:nth-child(4)', '.data-item:contains("Weight")'],
+    reference: ['.equipment-data .data-item:last-child', '.data-item:last-child'],
+    equipment: {
+      container: '.data-container',
+      labels: '.equipment-label .data-label',
+      dataItems: '.equipment-data .data-item'
+    },
+    notes: '.notes-contents, .notes-contents.multiline',
+    rateCells: '[data-test="load-rate-cell"]'
+  },
+  header: {
+    originLocation: 'dat-search-location[formcontrolname="origin"]',
+    destinationLocation: 'dat-search-location[formcontrolname="destination"]',
+    originInput: 'input[data-test="origin-input"][formcontrolname="locationInput"]',
+    destinationInput: 'input[data-test="destination-input"][formcontrolname="locationInput"]'
+  }
+};
+
 class QuickDAT {
   constructor() {
     this.debug = false; // Set to true for development debugging
@@ -13,6 +79,7 @@ class QuickDAT {
     this.rpmStylesInjected = false;
     this.setupObserver();
     this.loadSettings();
+    this.setupSettingsListener();
   }
 
   async loadSettings() {
@@ -36,8 +103,70 @@ class QuickDAT {
     // Apply RPM highlighting if enabled after settings load
     if (this.settings.rpmHighlightEnabled) {
       this.highlightLoadRows();
-      document.querySelectorAll('dat-load-details').forEach(popup => this.addPopupRpmBadge(popup));
+      document.querySelectorAll(SELECTORS.popup.root).forEach(popup => this.addPopupRpmBadge(popup));
     }
+  }
+
+  setupSettingsListener() {
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName !== 'sync') return;
+
+      const nextSettings = { ...this.settings };
+      for (const [key, change] of Object.entries(changes)) {
+        nextSettings[key] = change.newValue;
+      }
+      this.settings = {
+        emailTemplate: nextSettings.emailTemplate ?? this.getDefaultTemplate(),
+        emptyBodyOption: nextSettings.emptyBodyOption ?? true,
+        rpmHighlightEnabled: nextSettings.rpmHighlightEnabled ?? false,
+        targetRpm: typeof nextSettings.targetRpm === 'number' ? nextSettings.targetRpm : 2.0
+      };
+
+      this.showToast('Quick-DAT settings updated');
+
+      if (!this.settings.rpmHighlightEnabled) {
+        this.clearRpmHighlights();
+        return;
+      }
+
+      this.highlightLoadRows();
+      document.querySelectorAll(SELECTORS.popup.root).forEach(popup => this.addPopupRpmBadge(popup));
+    });
+  }
+
+  showToast(message) {
+    const existing = document.getElementById('quick-dat-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'quick-dat-toast';
+    toast.textContent = message;
+    toast.style.cssText =
+      'position: fixed;' +
+      'right: 16px;' +
+      'bottom: 16px;' +
+      'z-index: 999999;' +
+      'background: #0f172a;' +
+      'color: #ffffff;' +
+      'padding: 10px 12px;' +
+      'border-radius: 8px;' +
+      'font-size: 12px;' +
+      'box-shadow: 0 6px 16px rgba(15, 23, 42, 0.3);' +
+      'opacity: 0;' +
+      'transform: translateY(6px);' +
+      'transition: opacity 0.2s ease, transform 0.2s ease;';
+
+    document.body.appendChild(toast);
+    requestAnimationFrame(() => {
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateY(0)';
+    });
+
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(6px)';
+      setTimeout(() => toast.remove(), 250);
+    }, 1500);
   }
 
   getDefaultTemplate() {
@@ -69,17 +198,17 @@ Thank you,`;
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             // Check if this is a dat-load-details element
-            if (node.matches && node.matches('dat-load-details')) {
+            if (node.matches && node.matches(SELECTORS.popup.root)) {
               this.addIconsToPopup(node);
             }
             // Check for nested dat-load-details
-            const loadDetails = node.querySelectorAll && node.querySelectorAll('dat-load-details');
+            const loadDetails = node.querySelectorAll && node.querySelectorAll(SELECTORS.popup.root);
             if (loadDetails) {
               loadDetails.forEach(popup => this.addIconsToPopup(popup));
             }
             // Scan for rate cells to apply RPM highlighting
             if (node.querySelectorAll) {
-              const rateCells = node.querySelectorAll('[data-test="load-rate-cell"]');
+              const rateCells = node.querySelectorAll(SELECTORS.popup.rateCells);
               if (rateCells.length > 0) {
                 this.highlightLoadRows(rateCells);
               }
@@ -97,24 +226,24 @@ Thank you,`;
     this.observer = observer;
 
     // Also check existing popups
-    document.querySelectorAll('dat-load-details').forEach(popup => {
+    document.querySelectorAll(SELECTORS.popup.root).forEach(popup => {
       this.addIconsToPopup(popup);
     });
 
     // Initial pass for RPM highlighting on existing rows
-    const initialRateCells = document.querySelectorAll('[data-test="load-rate-cell"]');
+    const initialRateCells = document.querySelectorAll(SELECTORS.popup.rateCells);
     if (initialRateCells.length > 0) {
       this.highlightLoadRows(initialRateCells);
     }
 
     // Final safety re-check for Angular re-renders
     setTimeout(() => {
-      document.querySelectorAll('dat-load-details').forEach(popup => {
+      document.querySelectorAll(SELECTORS.popup.root).forEach(popup => {
         if (!popup.querySelector('.quick-dat-icons')) {
           this.addIconsToPopup(popup);
         }
       });
-      const delayedRateCells = document.querySelectorAll('[data-test="load-rate-cell"]');
+      const delayedRateCells = document.querySelectorAll(SELECTORS.popup.rateCells);
       if (delayedRateCells.length > 0) {
         this.highlightLoadRows(delayedRateCells);
       }
@@ -128,7 +257,7 @@ Thank you,`;
     if (!loadData.origin || !loadData.destination) return;
 
     // Find the header actions area
-    const actionsArea = popup.querySelector('.details-header_actions, .details-header, .details-actions');
+    const actionsArea = popup.querySelector(SELECTORS.popup.actionsArea.join(', '));
     if (!actionsArea) return;
 
     // Create icons container
@@ -213,54 +342,19 @@ Thank you,`;
 
   extractLoadData(popup) {
     // Extract data from specific popup element
-    const originSelectors = [
-      '.trip-place div:first-child',
-      '.route-origin .city',
-      '.city.city-table',
-      '.route-flex .route-origin .city'
-    ];
-    
-    const destinationSelectors = [
-      '.trip-place div:last-child',
-      '.route-destination .city',
-      '.city.align.city-table',
-      '.route-flex .route-destination .city'
-    ];
-
-    const dateSelectors = ['.date', '.route-origin .date', '.route-flex .date'];
-    const phoneSelectors = ['a[href^="tel:"]', '.contacts__phone', '.company-data-container a[href^="tel:"]'];
-    const emailSelectors = [
-      'a[href^="mailto:"]', 
-      '.contacts__email a[href^="mailto:"]',
-      '.contacts__email',
-      '.contact-methods a[href^="mailto:"]',
-      '.contacts a[href^="mailto:"]',
-      '[href^="mailto:"]'
-    ];
-    const rateSelectors = [
-      '.data-item-total', 
-      '.rate-data', 
-      '.data-item.data-item-total',
-      '.rate-details-container .data-item:first-child',
-      '.rate-detail-label:first-child + .rate-data .data-item'
-    ];
-    const commoditySelectors = ['.data-item.multiline', '.equipment-data .data-item.multiline', '.equipment-data .data-item'];
-    const weightSelectors = ['.equipment-data .data-item:nth-child(4)', '.data-item:contains("Weight")'];
-    const referenceSelectors = ['.equipment-data .data-item:last-child', '.data-item:last-child'];
-
     const pickupTime = this.extractTimeWithRetry(popup, 'pickup');
     const deliveryTime = this.extractTimeWithRetry(popup, 'delivery');
 
     const loadData = {
-      origin: this.extractTextFromElement(popup, originSelectors),
-      destination: this.extractTextFromElement(popup, destinationSelectors),
-      date: this.extractTextFromElement(popup, dateSelectors),
-      phone: this.extractTextFromElement(popup, phoneSelectors),
-      email: this.extractEmailFromElement(popup, emailSelectors),
-      rate: this.extractTextFromElement(popup, rateSelectors),
-      commodity: this.extractTextFromElement(popup, commoditySelectors),
-      weight: this.extractTextFromElement(popup, weightSelectors),
-      reference: this.extractTextFromElement(popup, referenceSelectors),
+      origin: this.extractTextFromElement(popup, SELECTORS.popup.origin),
+      destination: this.extractTextFromElement(popup, SELECTORS.popup.destination),
+      date: this.extractTextFromElement(popup, SELECTORS.popup.date),
+      phone: this.extractTextFromElement(popup, SELECTORS.popup.phone),
+      email: this.extractEmailFromElement(popup, SELECTORS.popup.email),
+      rate: this.extractTextFromElement(popup, SELECTORS.popup.rate, { skipMiles: true }),
+      commodity: this.extractTextFromElement(popup, SELECTORS.popup.commodity),
+      weight: this.extractTextFromElement(popup, SELECTORS.popup.weight),
+      reference: this.extractTextFromElement(popup, SELECTORS.popup.reference),
       pickupTime,
       deliveryTime
     };
@@ -268,15 +362,15 @@ Thank you,`;
     // Debug log for pickup/delivery times
     if (this.debug) {
       console.log('Quick-DAT: Debug - Looking for times in popup:', popup);
-      console.log('Quick-DAT: Debug - Found pickup elements:', popup.querySelectorAll('.route-origin .hours'));
-      console.log('Quick-DAT: Debug - Found delivery elements:', popup.querySelectorAll('.route-destination .hours'));
-      console.log('Quick-DAT: Debug - All hours elements:', popup.querySelectorAll('.hours'));
+      console.log('Quick-DAT: Debug - Found pickup elements:', popup.querySelectorAll(`${SELECTORS.popup.time.originBase} ${SELECTORS.popup.time.hours}`));
+      console.log('Quick-DAT: Debug - Found delivery elements:', popup.querySelectorAll(`${SELECTORS.popup.time.destinationBase} ${SELECTORS.popup.time.hours}`));
+      console.log('Quick-DAT: Debug - All hours elements:', popup.querySelectorAll(SELECTORS.popup.time.hours));
       
       if (pickupTime || deliveryTime) {
         console.log('Quick-DAT: Extracted times:', { pickupTime, deliveryTime });
       } else {
         console.log('Quick-DAT: No times extracted - checking all hours elements');
-        popup.querySelectorAll('.hours').forEach((el, index) => {
+        popup.querySelectorAll(SELECTORS.popup.time.hours).forEach((el, index) => {
           console.log(`Quick-DAT: Hours element ${index}:`, {
             textContent: el.textContent.trim(),
             innerHTML: el.innerHTML.trim(),
@@ -289,7 +383,7 @@ Thank you,`;
     return loadData;
   }
 
-  extractTextFromElement(element, selectors) {
+  extractTextFromElement(element, selectors, options = {}) {
     for (const selector of selectors) {
       const found = element.querySelector(selector);
       if (found) {
@@ -301,7 +395,7 @@ Thank you,`;
         
         if (text) {
           // Filter out trip miles from rate extraction
-          if (selector.includes('rate') && text.includes('mi')) {
+          if (options.skipMiles && text.includes('mi')) {
             continue;
           }
           // Debug for time-related selectors
@@ -316,11 +410,11 @@ Thank you,`;
   }
 
   extractTimeWithRetry(popup, type) {
-    const base = type === 'pickup' ? '.route-origin' : '.route-destination';
+    const base = type === 'pickup' ? SELECTORS.popup.time.originBase : SELECTORS.popup.time.destinationBase;
 
     const extract = () => {
-      const dateEl = popup.querySelector(`${base} .date`);
-      const hoursEls = Array.from(popup.querySelectorAll(`${base} .hours`))
+      const dateEl = popup.querySelector(`${base} ${SELECTORS.popup.time.date}`);
+      const hoursEls = Array.from(popup.querySelectorAll(`${base} ${SELECTORS.popup.time.hours}`))
         .map(el => el.textContent.replace(/^@/, '').replace(/\s+/g, ' ').replace(/\u00A0/g, ' ').trim())
         .filter(t => t && !/^$/.test(t)); // remove empty entries
 
@@ -351,7 +445,7 @@ Thank you,`;
         requestAnimationFrame(() => {
           const delayedTime = extract();
           if (delayedTime) {
-            const popupRef = popup.closest('dat-load-details');
+            const popupRef = popup.closest(SELECTORS.popup.root);
             if (!popupRef) return;
             const key = `${type}Time`;
             if (popupRef.dataset[key] !== delayedTime) {
@@ -371,23 +465,26 @@ Thank you,`;
     const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
 
     const findEmail = () => {
-      // 1️⃣ Check all mailto links
-      const mailto = element.querySelector('a[href^="mailto:"]');
-      if (mailto) return mailto.href.replace('mailto:', '').trim();
+      // 1️⃣ Check configured selectors first (prefer stable selectors)
+      for (const selector of selectors) {
+        const el = element.querySelector(selector);
+        if (!el) continue;
 
-      // 2️⃣ Check .contacts__email container text
-      const emailDiv = element.querySelector('.contacts__email');
-      if (emailDiv && emailDiv.textContent.match(emailRegex)) {
-        return emailDiv.textContent.match(emailRegex)[0].trim();
+        if (el.href && el.href.startsWith('mailto:')) {
+          return el.href.replace('mailto:', '').trim();
+        }
+
+        const match = el.textContent.match(emailRegex);
+        if (match) return match[0].trim();
       }
 
-      // 3️⃣ Check comments/notes section specifically
-      const notesSection = element.querySelector('.notes-contents, .notes-contents.multiline');
+      // 2️⃣ Check comments/notes section specifically
+      const notesSection = element.querySelector(SELECTORS.popup.notes);
       if (notesSection && notesSection.textContent.match(emailRegex)) {
         return notesSection.textContent.match(emailRegex)[0].trim();
       }
 
-      // 4️⃣ Fallback: search entire popup text
+      // 3️⃣ Fallback: search entire popup text
       const match = element.textContent.match(emailRegex);
       if (match) return match[0].trim();
 
@@ -403,7 +500,7 @@ Thank you,`;
       setTimeout(() => {
         const delayedEmail = findEmail();
         if (delayedEmail) {
-          const popup = element.closest('dat-load-details');
+          const popup = element.closest(SELECTORS.popup.root);
           if (popup) {
             const existingIcons = popup.querySelector('.quick-dat-icons');
             if (existingIcons && !existingIcons.querySelector('[title="Email Broker"]')) {
@@ -467,13 +564,21 @@ Thank you,`;
 
   highlightLoadRows(rateCells = null) {
     if (!this.settings.rpmHighlightEnabled) return;
-    const cells = rateCells ? Array.from(rateCells) : Array.from(document.querySelectorAll('[data-test="load-rate-cell"]'));
+    const cells = rateCells ? Array.from(rateCells) : Array.from(document.querySelectorAll(SELECTORS.popup.rateCells));
     cells.forEach(cell => this.applyRpmHighlightToCell(cell));
+  }
+
+  clearRpmHighlights() {
+    const cells = Array.from(document.querySelectorAll(SELECTORS.popup.rateCells));
+    cells.forEach(cell => {
+      const rateContainer = cell.querySelector('.rate-container') || cell;
+      rateContainer.classList.remove('quick-dat-rpm-hit');
+    });
   }
 
   addPopupRpmBadge(popup) {
     if (!this.settings.rpmHighlightEnabled) return;
-    const rateCell = popup.querySelector('[data-test="load-rate-cell"]');
+    const rateCell = popup.querySelector(SELECTORS.popup.rateCells);
     const rpm = this.parseRpmFromCell(rateCell);
     const target = this.settings.targetRpm ?? 2.0;
 
@@ -493,10 +598,10 @@ Thank you,`;
     // Re-extract reference from popup if available (Angular async loading)
     // The reference may not be populated when icons are first added
     if (popup) {
-      const equipmentContainer = popup.querySelector('.data-container');
+      const equipmentContainer = popup.querySelector(SELECTORS.popup.equipment.container);
       if (equipmentContainer) {
-        const labels = Array.from(equipmentContainer.querySelectorAll('.equipment-label .data-label'));
-        const dataItems = Array.from(equipmentContainer.querySelectorAll('.equipment-data .data-item'));
+        const labels = Array.from(equipmentContainer.querySelectorAll(SELECTORS.popup.equipment.labels));
+        const dataItems = Array.from(equipmentContainer.querySelectorAll(SELECTORS.popup.equipment.dataItems));
         
         const refLabelIndex = labels.findIndex(label => {
           const text = label.textContent.trim().toLowerCase();
@@ -572,7 +677,7 @@ Thank you,`;
   extractUserSearchOrigin() {
     // Extract user's search origin from DAT header
     // Find the first dat-search-location with formcontrolname="origin"
-    const originLocation = document.querySelector('dat-search-location[formcontrolname="origin"]');
+    const originLocation = document.querySelector(SELECTORS.header.originLocation);
     if (!originLocation) return '';
 
     // Find the input with data-test="origin-input" and formcontrolname="locationInput"
@@ -586,7 +691,7 @@ Thank you,`;
   extractUserSearchDestination() {
     // Extract user's search destination from DAT header
     // Find the first dat-search-location with formcontrolname="destination"
-    const destinationLocation = document.querySelector('dat-search-location[formcontrolname="destination"]');
+    const destinationLocation = document.querySelector(SELECTORS.header.destinationLocation);
     if (!destinationLocation) return '';
 
     // Find the input with data-test="destination-input" and formcontrolname="locationInput"
