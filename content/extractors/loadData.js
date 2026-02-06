@@ -1,5 +1,6 @@
 // Quick-DAT load data extraction
-// Dependencies: window.QD.selectors, window.QD.extractors
+// Defines: window.QD.extractors.extractLoadData
+// Expects: window.QD.selectors, window.QD.extractors.*
 window.QD = window.QD || {};
 window.QD.extractors = window.QD.extractors || {};
 window.QD.extractors.extractLoadData = function extractLoadData(popup, context) {
@@ -22,7 +23,7 @@ window.QD.extractors.extractLoadData = function extractLoadData(popup, context) 
   };
 
   // Debug log for pickup/delivery times
-  if (context.debug) {
+  if (window.QD.state.debug) {
     console.log('Quick-DAT: Debug - Looking for times in popup:', popup);
     const pickupHours = window.QD.selectors.popup.time.originBase
       .flatMap(base => window.QD.selectors.popup.time.hours.map(hours => `${base} ${hours}`));

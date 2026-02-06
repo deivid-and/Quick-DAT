@@ -1,5 +1,6 @@
 // Quick-DAT RPM UI helpers
-// Dependencies: window.QD.selectors
+// Defines: window.QD.ui.rpm.*
+// Expects: window.QD.selectors
 window.QD = window.QD || {};
 window.QD.ui = window.QD.ui || {};
 window.QD.ui.rpm = window.QD.ui.rpm || {};
@@ -21,7 +22,7 @@ window.QD.ui.rpm.ensureRpmStyles = function ensureRpmStyles(state) {
 
 window.QD.ui.rpm.parseRpmFromCell = function parseRpmFromCell(cell) {
   if (!cell) return null;
-  const text = cell.querySelector('.calculated-rate span')?.textContent?.trim() || '';
+  const text = cell.querySelector(window.QD.selectors.rpm.calculatedRateText)?.textContent?.trim() || '';
   const match = text.match(/\$?\s*([\d.,]+)\s*\*?\/\s*mi/i);
   if (!match) return null;
   const value = parseFloat(match[1].replace(/,/g, ''));
@@ -29,7 +30,7 @@ window.QD.ui.rpm.parseRpmFromCell = function parseRpmFromCell(cell) {
 };
 
 window.QD.ui.rpm.applyRpmHighlightToCell = function applyRpmHighlightToCell(cell, state) {
-  const rateContainer = cell.querySelector('.rate-container') || cell;
+  const rateContainer = cell.querySelector(window.QD.selectors.rpm.rateContainer) || cell;
   if (!state.settings.rpmHighlightEnabled) {
     rateContainer.classList.remove('quick-dat-rpm-hit');
     return;
@@ -57,7 +58,7 @@ window.QD.ui.rpm.highlightLoadRows = function highlightLoadRows(rateCells, state
 window.QD.ui.rpm.clearRpmHighlights = function clearRpmHighlights() {
   const cells = Array.from(document.querySelectorAll(window.QD.selectors.popup.rateCells));
   cells.forEach(cell => {
-    const rateContainer = cell.querySelector('.rate-container') || cell;
+    const rateContainer = cell.querySelector(window.QD.selectors.rpm.rateContainer) || cell;
     rateContainer.classList.remove('quick-dat-rpm-hit');
   });
 };
@@ -68,7 +69,7 @@ window.QD.ui.rpm.addPopupRpmBadge = function addPopupRpmBadge(popup, state) {
   const rpm = window.QD.ui.rpm.parseRpmFromCell(rateCell);
   const target = state.settings.targetRpm ?? 2.0;
 
-  const rateContainer = rateCell ? (rateCell.querySelector('.rate-container') || rateCell) : null;
+  const rateContainer = rateCell ? (rateCell.querySelector(window.QD.selectors.rpm.rateContainer) || rateCell) : null;
   if (!rateContainer) return;
 
   rateContainer.classList.remove('quick-dat-rpm-hit');

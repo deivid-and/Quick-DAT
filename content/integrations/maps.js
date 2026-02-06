@@ -1,5 +1,6 @@
 // Quick-DAT Maps integration
-// Dependencies: none
+// Defines: window.QD.integrations.maps.openGoogleMaps
+// Expects: window.QD.extractors.extractUserSearchOrigin/Destination
 window.QD = window.QD || {};
 window.QD.integrations = window.QD.integrations || {};
 window.QD.integrations.maps = window.QD.integrations.maps || {};

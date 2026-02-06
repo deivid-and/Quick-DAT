@@ -1,5 +1,6 @@
 // Quick-DAT search inputs extraction
-// Dependencies: window.QD.selectors
+// Defines: window.QD.extractors.extractUserSearchOrigin/Destination
+// Expects: window.QD.selectors
 window.QD = window.QD || {};
 window.QD.extractors = window.QD.extractors || {};
 window.QD.extractors.extractUserSearchOrigin = function extractUserSearchOrigin() {

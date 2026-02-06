@@ -1,5 +1,6 @@
 // Quick-DAT Gmail integration
-// Dependencies: none
+// Defines: window.QD.integrations.gmail.openEmailDraft/createEmailBody
+// Expects: window.QD.selectors, context.settings.emailTemplate/emptyBodyOption
 window.QD = window.QD || {};
 window.QD.integrations = window.QD.integrations || {};
 window.QD.integrations.gmail = window.QD.integrations.gmail || {};

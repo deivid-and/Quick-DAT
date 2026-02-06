@@ -1,5 +1,6 @@
 // Quick-DAT email extraction
-// Dependencies: window.QD.selectors
+// Defines: window.QD.extractors.extractEmailFromElement
+// Expects: window.QD.selectors, window.QD.ui.icons, window.QD.integrations.gmail, window.QD.extractors.extractLoadData
 window.QD = window.QD || {};
 window.QD.extractors = window.QD.extractors || {};
 window.QD.extractors.extractEmailFromElement = function extractEmailFromElement(element, selectors, context) {
@@ -37,26 +38,24 @@ window.QD.extractors.extractEmailFromElement = function extractEmailFromElement(
   if (email) return email;
 
   // If not found — retry after small delay (Angular async)
-  [500, 1000, 1500].forEach((delay) => {
-    setTimeout(() => {
-      const delayedEmail = findEmail();
-      if (delayedEmail) {
-        const popup = element.closest(window.QD.selectors.popup.root);
-        if (popup) {
-          const existingIcons = popup.querySelector('.quick-dat-icons');
-          if (existingIcons && !existingIcons.querySelector('[title="Email Broker"]')) {
-            const emailIcon = window.QD.ui.icons.createIcon('mail', 'Email Broker', () => {
-              window.QD.integrations.gmail.openEmailDraft(
-                { ...window.QD.extractors.extractLoadData(popup, context), email: delayedEmail },
-                popup,
-                context
-              );
-            });
-            existingIcons.appendChild(emailIcon);
-          }
+  window.QD.utils.retryWithDelays([500, 1000, 1500], () => {
+    const delayedEmail = findEmail();
+    if (delayedEmail) {
+      const popup = element.closest(window.QD.selectors.popup.root);
+      if (popup) {
+        const existingIcons = popup.querySelector(window.QD.selectors.ui.iconsContainer);
+        if (existingIcons && !existingIcons.querySelector(window.QD.selectors.ui.emailIcon)) {
+          const emailIcon = window.QD.ui.icons.createIcon('mail', 'Email Broker', () => {
+            window.QD.integrations.gmail.openEmailDraft(
+              { ...window.QD.extractors.extractLoadData(popup, context), email: delayedEmail },
+              popup,
+              context
+            );
+          });
+          existingIcons.appendChild(emailIcon);
         }
       }
-    }, delay);
+    }
   });
 
   return '';

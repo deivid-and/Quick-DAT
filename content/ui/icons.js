@@ -1,5 +1,6 @@
 // Quick-DAT popup icons
-// Dependencies: window.QD.selectors, window.QD.extractors, window.QD.ui.rpm
+// Defines: window.QD.ui.icons.addIconsToPopup/createIcon
+// Expects: window.QD.selectors, window.QD.extractors.extractLoadData, window.QD.ui.rpm, window.QD.integrations.maps, window.QD.integrations.gmail
 window.QD = window.QD || {};
 window.QD.ui = window.QD.ui || {};
 window.QD.ui.icons = window.QD.ui.icons || {};

@@ -1,5 +1,6 @@
 // Quick-DAT text extraction
-// Dependencies: none
+// Defines: window.QD.extractors.extractTextFromElement
+// Expects: window.QD, window.QD.state.debug (optional)
 window.QD = window.QD || {};
 window.QD.extractors = window.QD.extractors || {};
 window.QD.extractors.extractTextFromElement = function extractTextFromElement(element, selectors, options = {}) {
@@ -18,7 +19,7 @@ window.QD.extractors.extractTextFromElement = function extractTextFromElement(el
           continue;
         }
         // Debug for time-related selectors
-        if (selector.includes('hours') && window.QD.debug) {
+        if (selector.includes('hours') && window.QD.state.debug) {
           console.log(`Quick-DAT: Found time with selector "${selector}":`, text);
         }
         return text;

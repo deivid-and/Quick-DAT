@@ -1,6 +1,9 @@
 // Quick-DAT selectors
-// Dependencies: none
+// Defines: window.QD.selectors, window.QD.state.debug
+// Expects: window.QD
 window.QD = window.QD || {};
+window.QD.state = window.QD.state || {};
+window.QD.state.debug = window.QD.state.debug ?? false;
 window.QD.selectors = {
   popup: {
     root: 'dat-load-details',
@@ -64,5 +67,13 @@ window.QD.selectors = {
     destinationLocation: 'dat-search-location[formcontrolname="destination"]',
     originInput: 'input[data-test="origin-input"][formcontrolname="locationInput"]',
     destinationInput: 'input[data-test="destination-input"][formcontrolname="locationInput"]'
+  },
+  ui: {
+    iconsContainer: '.quick-dat-icons',
+    emailIcon: '[title="Email Broker"]'
+  },
+  rpm: {
+    calculatedRateText: '.calculated-rate span',
+    rateContainer: '.rate-container'
   }
 };

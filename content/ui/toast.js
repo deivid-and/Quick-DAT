@@ -1,5 +1,6 @@
 // Quick-DAT toast UI
-// Dependencies: none
+// Defines: window.QD.ui.showToast
+// Expects: window.QD
 window.QD = window.QD || {};
 window.QD.ui = window.QD.ui || {};
 window.QD.ui.showToast = function showToast(message) {

@@ -1,5 +1,6 @@
 // Quick-DAT settings
-// Dependencies: window.QD.ui.toast, window.QD.ui.rpm, window.QD.selectors
+// Defines: window.QD.state.settings.getDefaultTemplate/loadSettings/setupSettingsListener
+// Expects: window.QD.ui.showToast, window.QD.ui.rpm, window.QD.selectors
 window.QD = window.QD || {};
 window.QD.state = window.QD.state || {};
 window.QD.state.settings = window.QD.state.settings || {};

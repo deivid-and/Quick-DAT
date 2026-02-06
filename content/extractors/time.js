@@ -1,5 +1,6 @@
 // Quick-DAT time extraction
-// Dependencies: window.QD.selectors
+// Defines: window.QD.extractors.extractTimeWithRetry
+// Expects: window.QD.selectors, window.QD.state.debug (optional)
 window.QD = window.QD || {};
 window.QD.extractors = window.QD.extractors || {};
 window.QD.extractors.extractTimeWithRetry = function extractTimeWithRetry(popup, type) {
@@ -54,24 +55,21 @@ window.QD.extractors.extractTimeWithRetry = function extractTimeWithRetry(popup,
   let time = extract();
   if (time) return time;
 
-  const delays = [300, 800, 1500, 2500, 4000];
-  for (const delay of delays) {
-    setTimeout(() => {
-      requestAnimationFrame(() => {
-        const delayedTime = extract();
-        if (delayedTime) {
-          const popupRef = popup.closest(window.QD.selectors.popup.root);
-          if (!popupRef) return;
-          const key = `${type}Time`;
-          if (popupRef.dataset[key] !== delayedTime) {
-            popupRef.dataset[key] = delayedTime;
-            if (window.QD.debug)
-              console.log(`Quick-DAT: Late-found ${type} time after ${delay}ms:`, delayedTime);
-          }
+  window.QD.utils.retryWithDelays([300, 800, 1500, 2500, 4000], (delay) => {
+    requestAnimationFrame(() => {
+      const delayedTime = extract();
+      if (delayedTime) {
+        const popupRef = popup.closest(window.QD.selectors.popup.root);
+        if (!popupRef) return;
+        const key = `${type}Time`;
+        if (popupRef.dataset[key] !== delayedTime) {
+          popupRef.dataset[key] = delayedTime;
+          if (window.QD.state.debug)
+            console.log(`Quick-DAT: Late-found ${type} time after ${delay}ms:`, delayedTime);
         }
-      });
-    }, delay);
-  }
+      }
+    });
+  });
 
   return '';
 };

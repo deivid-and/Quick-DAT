@@ -1,11 +1,11 @@
 // Quick-DAT Content Script
+// Defines: QuickDAT bootstrapping
+// Expects: window.QD.* modules loaded via manifest order
 window.QD = window.QD || {};
-const SELECTORS = window.QD.selectors;
 
 class QuickDAT {
   constructor() {
     this.debug = false; // Set to true for development debugging
-    window.QD.debug = this.debug;
     this.settings = {
       emailTemplate: window.QD.state.settings.getDefaultTemplate(),
       emptyBodyOption: true,
