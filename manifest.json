@@ -16,7 +16,7 @@
   "content_scripts": [
     {
       "matches": ["https://one.dat.com/*"],
-      "js": ["content.js"],
+      "js": ["content/selectors.js", "content/ui/toast.js", "content/ui/rpm.js", "content/extractors/text.js", "content/extractors/time.js", "content/extractors/searchInputs.js", "content/extractors/email.js", "content/extractors/loadData.js", "content/ui/icons.js", "content/integrations/gmail.js", "content/integrations/maps.js", "content/dom/observer.js", "content/state/settings.js", "content.js"],
       "run_at": "document_end"
     }
   ],
