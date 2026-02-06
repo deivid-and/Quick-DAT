@@ -9,10 +9,10 @@ const SELECTORS = {
       '.details-actions'
     ],
     time: {
-      originBase: '[data-test="route-origin"], .route-origin',
-      destinationBase: '[data-test="route-destination"], .route-destination',
-      date: '[data-test="route-date"], .date',
-      hours: '.hours'
+      originBase: ['[data-test="route-origin"]', '.route-origin'],
+      destinationBase: ['[data-test="route-destination"]', '.route-destination'],
+      date: ['[data-test="route-date"]', '.date'],
+      hours: ['.hours']
     },
     origin: [
       '[data-test="route-origin"] .city',
@@ -110,6 +110,10 @@ class QuickDAT {
   setupSettingsListener() {
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName !== 'sync') return;
+
+      const relevantKeys = new Set(['emailTemplate', 'emptyBodyOption', 'rpmHighlightEnabled', 'targetRpm']);
+      const hasRelevantChanges = Object.keys(changes).some(key => relevantKeys.has(key));
+      if (!hasRelevantChanges) return;
 
       const nextSettings = { ...this.settings };
       for (const [key, change] of Object.entries(changes)) {
@@ -362,15 +366,20 @@ Thank you,`;
     // Debug log for pickup/delivery times
     if (this.debug) {
       console.log('Quick-DAT: Debug - Looking for times in popup:', popup);
-      console.log('Quick-DAT: Debug - Found pickup elements:', popup.querySelectorAll(`${SELECTORS.popup.time.originBase} ${SELECTORS.popup.time.hours}`));
-      console.log('Quick-DAT: Debug - Found delivery elements:', popup.querySelectorAll(`${SELECTORS.popup.time.destinationBase} ${SELECTORS.popup.time.hours}`));
-      console.log('Quick-DAT: Debug - All hours elements:', popup.querySelectorAll(SELECTORS.popup.time.hours));
+      const pickupHours = SELECTORS.popup.time.originBase
+        .flatMap(base => SELECTORS.popup.time.hours.map(hours => `${base} ${hours}`));
+      const deliveryHours = SELECTORS.popup.time.destinationBase
+        .flatMap(base => SELECTORS.popup.time.hours.map(hours => `${base} ${hours}`));
+
+      console.log('Quick-DAT: Debug - Found pickup elements:', popup.querySelectorAll(pickupHours.join(', ')));
+      console.log('Quick-DAT: Debug - Found delivery elements:', popup.querySelectorAll(deliveryHours.join(', ')));
+      console.log('Quick-DAT: Debug - All hours elements:', popup.querySelectorAll(SELECTORS.popup.time.hours.join(', ')));
       
       if (pickupTime || deliveryTime) {
         console.log('Quick-DAT: Extracted times:', { pickupTime, deliveryTime });
       } else {
         console.log('Quick-DAT: No times extracted - checking all hours elements');
-        popup.querySelectorAll(SELECTORS.popup.time.hours).forEach((el, index) => {
+        popup.querySelectorAll(SELECTORS.popup.time.hours.join(', ')).forEach((el, index) => {
           console.log(`Quick-DAT: Hours element ${index}:`, {
             textContent: el.textContent.trim(),
             innerHTML: el.innerHTML.trim(),
@@ -410,11 +419,33 @@ Thank you,`;
   }
 
   extractTimeWithRetry(popup, type) {
-    const base = type === 'pickup' ? SELECTORS.popup.time.originBase : SELECTORS.popup.time.destinationBase;
+    const baseSelectors = type === 'pickup'
+      ? SELECTORS.popup.time.originBase
+      : SELECTORS.popup.time.destinationBase;
+    const dateSelectors = SELECTORS.popup.time.date;
+    const hoursSelectors = SELECTORS.popup.time.hours;
 
     const extract = () => {
-      const dateEl = popup.querySelector(`${base} ${SELECTORS.popup.time.date}`);
-      const hoursEls = Array.from(popup.querySelectorAll(`${base} ${SELECTORS.popup.time.hours}`))
+      let dateEl = null;
+      for (const base of baseSelectors) {
+        for (const dateSel of dateSelectors) {
+          const found = popup.querySelector(`${base} ${dateSel}`);
+          if (found) {
+            dateEl = found;
+            break;
+          }
+        }
+        if (dateEl) break;
+      }
+
+      const hoursSet = new Set();
+      for (const base of baseSelectors) {
+        for (const hoursSel of hoursSelectors) {
+          popup.querySelectorAll(`${base} ${hoursSel}`).forEach(el => hoursSet.add(el));
+        }
+      }
+
+      const hoursEls = Array.from(hoursSet)
         .map(el => el.textContent.replace(/^@/, '').replace(/\s+/g, ' ').replace(/\u00A0/g, ' ').trim())
         .filter(t => t && !/^$/.test(t)); // remove empty entries
 
