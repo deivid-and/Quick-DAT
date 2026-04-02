@@ -56,6 +56,16 @@ Thank you,`;
     document.getElementById('restoreBtn').addEventListener('click', () => {
       this.restoreDefaultTemplate();
     });
+
+    // RC AI button
+    document.getElementById('rcAiBtn').addEventListener('click', () => {
+      const url = chrome.runtime.getURL('rc-ai/rc.html');
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const t = tabs && tabs[0];
+        if (!t || !t.id) return;
+        chrome.tabs.update(t.id, { url, active: true });
+      });
+    });
     
     // Template collapse toggle
     document.getElementById('toggleTemplateBtn').addEventListener('click', () => {
