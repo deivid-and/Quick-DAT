@@ -52,7 +52,7 @@ window.QD.selectors = {
       '.rate-detail-label:first-child + .rate-data .data-item'
     ],
     commodity: ['.data-item.multiline', '.equipment-data .data-item.multiline', '.equipment-data .data-item'],
-    weight: ['.equipment-data .data-item:nth-child(4)', '.data-item:contains("Weight")'],
+    weight: ['.equipment-data .data-item:nth-child(4)'],
     reference: ['.equipment-data .data-item:last-child', '.data-item:last-child'],
     equipment: {
       container: '.data-container',
