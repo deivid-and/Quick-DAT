@@ -11,13 +11,13 @@ class QuickDATPopup {
     try {
       const result = await chrome.storage.sync.get(['emailTemplate', 'emptyBodyOption', 'rpmHighlightEnabled', 'targetRpm']);
       document.getElementById('emailTemplate').value = result.emailTemplate || this.getDefaultTemplate();
-      const emptyBodyChecked = result.emptyBodyOption ?? true;
-      document.getElementById('emptyBodyOption').checked = emptyBodyChecked;
+      document.getElementById('emptyBodyOption').checked = true;
+      document.getElementById('emptyBodyOption').disabled = true;
       document.getElementById('rpmHighlightEnabled').checked = result.rpmHighlightEnabled ?? false;
       document.getElementById('targetRpm').value = typeof result.targetRpm === 'number' ? result.targetRpm.toFixed(2) : '2.00';
       
-      // Initialize the email template section visibility
-      this.toggleEmailTemplateSection(emptyBodyChecked);
+      // Email templates are temporarily disabled, so keep the editor hidden.
+      this.toggleEmailTemplateSection(true);
       this.updateTemplateCollapse(this.templateCollapsed);
       
       // Auto-resize textarea on load
@@ -57,24 +57,7 @@ Thank you,`;
       this.restoreDefaultTemplate();
     });
     
-    // Template collapse toggle
-    document.getElementById('toggleTemplateBtn').addEventListener('click', () => {
-      this.templateCollapsed = !this.templateCollapsed;
-      this.updateTemplateCollapse(this.templateCollapsed);
-    });
-
-    // Empty body option checkbox
-    document.getElementById('emptyBodyOption').addEventListener('change', (e) => {
-      this.toggleEmailTemplateSection(e.target.checked);
-    });
-
-    // Variable tag clicks
-    document.querySelectorAll('.variable-tag').forEach(tag => {
-      tag.addEventListener('click', () => {
-        const variable = tag.getAttribute('data-var');
-        this.insertVariable(variable);
-      });
-    });
+    // Template controls remain in code for future re-enable, but are inactive for now.
   }
 
   insertVariable(variable) {
@@ -175,7 +158,7 @@ Thank you,`;
     try {
       const settings = {
         emailTemplate: document.getElementById('emailTemplate').value,
-        emptyBodyOption: document.getElementById('emptyBodyOption').checked,
+        emptyBodyOption: true,
         rpmHighlightEnabled: document.getElementById('rpmHighlightEnabled').checked,
         targetRpm: parseFloat(document.getElementById('targetRpm').value) || 0
       };

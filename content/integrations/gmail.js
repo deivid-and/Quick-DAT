@@ -44,23 +44,15 @@ window.QD.integrations.gmail.openEmailDraft = function openEmailDraft(loadData, 
     subject += ` [Ref: ${reference}]`;
   }
 
-  // Add subtle delay to prevent Chrome blocking Gmail links
+  // Subject-only Gmail drafts are currently forced for reliability.
   setTimeout(() => {
-    // Check if empty body option is enabled
-    if (context.settings.emptyBodyOption) {
-      // Send email with empty body (subject only)
-      const gmailUrl = `https://mail.google.com/mail/u/0/?fs=1&tf=cm&to=${encodeURIComponent(loadData.email)}&su=${encodeURIComponent(subject)}`;
-      window.open(gmailUrl, '_blank');
-    } else {
-      // Send email with full body
-      const body = window.QD.integrations.gmail.createEmailBody(loadData, popup, context);
-      const gmailUrl = `https://mail.google.com/mail/u/0/?fs=1&tf=cm&to=${encodeURIComponent(loadData.email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.open(gmailUrl, '_blank');
-    }
+    const gmailUrl = `https://mail.google.com/mail/u/0/?fs=1&tf=cm&to=${encodeURIComponent(loadData.email)}&su=${encodeURIComponent(subject)}`;
+    window.open(gmailUrl, '_blank');
   }, 50);
 };
 
 window.QD.integrations.gmail.createEmailBody = function createEmailBody(loadData, popup, context) {
+  // Currently unused: email templates are temporarily disabled for reliability.
   let body = context.settings.emailTemplate;
 
   // Safe value helper to prevent undefined/null issues
