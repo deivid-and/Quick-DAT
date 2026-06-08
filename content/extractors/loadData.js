@@ -3,6 +3,34 @@
 // Expects: window.QD.selectors, window.QD.extractors.*
 window.QD = window.QD || {};
 window.QD.extractors = window.QD.extractors || {};
+window.QD.extractors.extractReferenceFromPopup = function extractReferenceFromPopup(popup) {
+  const equipmentContainer = popup.querySelector(window.QD.selectors.popup.equipment.container);
+  if (!equipmentContainer) return '';
+
+  const invalidValues = new Set(['', '-', '–', '—', 'ā€“', 'ā€”']);
+  const rows = Array.from(equipmentContainer.querySelectorAll(window.QD.selectors.popup.equipment.dataRows));
+
+  for (const row of rows) {
+    const labelEl = row.querySelector(window.QD.selectors.popup.equipment.label);
+    const itemEl = row.querySelector(window.QD.selectors.popup.equipment.item);
+    if (!labelEl || !itemEl) continue;
+
+    const label = labelEl.textContent.trim().toLowerCase();
+    if (!label.includes('reference')) continue;
+
+    const value = itemEl.textContent.trim();
+    if (invalidValues.has(value)) return '';
+
+    if (window.QD.state.debug) {
+      console.log('[Quick-DAT DEBUG] reference extracted', value);
+    }
+
+    return value;
+  }
+
+  return '';
+};
+
 window.QD.extractors.extractLoadData = function extractLoadData(popup, context) {
   // Extract data from specific popup element
   const pickupTime = window.QD.extractors.extractTimeWithRetry(popup, 'pickup');
@@ -17,7 +45,7 @@ window.QD.extractors.extractLoadData = function extractLoadData(popup, context) 
     rate: window.QD.extractors.extractTextFromElement(popup, window.QD.selectors.popup.rate, { skipMiles: true }),
     commodity: window.QD.extractors.extractTextFromElement(popup, window.QD.selectors.popup.commodity),
     weight: window.QD.extractors.extractTextFromElement(popup, window.QD.selectors.popup.weight),
-    reference: window.QD.extractors.extractTextFromElement(popup, window.QD.selectors.popup.reference),
+    reference: window.QD.extractors.extractReferenceFromPopup(popup),
     pickupTime,
     deliveryTime
   };

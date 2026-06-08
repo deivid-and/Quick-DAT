@@ -9,23 +9,9 @@ window.QD.integrations.gmail.openEmailDraft = function openEmailDraft(loadData, 
   // Re-extract reference from popup if available (Angular async loading)
   // The reference may not be populated when icons are first added
   if (popup) {
-    const equipmentContainer = popup.querySelector(window.QD.selectors.popup.equipment.container);
-    if (equipmentContainer) {
-      const labels = Array.from(equipmentContainer.querySelectorAll(window.QD.selectors.popup.equipment.labels));
-      const dataItems = Array.from(equipmentContainer.querySelectorAll(window.QD.selectors.popup.equipment.dataItems));
-
-      const refLabelIndex = labels.findIndex(label => {
-        const text = label.textContent.trim().toLowerCase();
-        return text.includes('reference');
-      });
-
-      if (refLabelIndex !== -1 && dataItems[refLabelIndex]) {
-        const freshReference = dataItems[refLabelIndex].textContent.trim();
-        // Only use if it's a valid reference (not dash)
-        if (freshReference && freshReference !== '–' && freshReference !== '-' && freshReference !== '—') {
-          loadData.reference = freshReference;
-        }
-      }
+    const freshReference = window.QD.extractors.extractReferenceFromPopup(popup);
+    if (freshReference) {
+      loadData.reference = freshReference;
     }
   }
 

@@ -53,9 +53,11 @@ window.QD.selectors = {
     ],
     commodity: ['.data-item.multiline', '.equipment-data .data-item.multiline', '.equipment-data .data-item'],
     weight: ['.equipment-data .data-item:nth-child(4)'],
-    reference: ['.equipment-data .data-item:last-child', '.data-item:last-child'],
     equipment: {
       container: '.data-container',
+      dataRows: '.data-row',
+      label: '.data-label',
+      item: '.data-item',
       labels: '.equipment-label .data-label',
       dataItems: '.equipment-data .data-item'
     },
