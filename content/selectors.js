@@ -76,6 +76,12 @@ window.QD.selectors = {
   },
   rpm: {
     calculatedRateText: '.calculated-rate span',
-    rateContainer: '.rate-container'
+    rateContainer: '.rate-container',
+    popupRateTotal: '.data-item.data-item-total',
+    popupLoadedMiles: '.trip-miles',
+    popupOriginCity: '.route-origin .city',
+    popupDestinationCity: '.route-destination .city',
+    popupRateMilesAnchor: '.data-item-ratemiles',
+    popupRealRpmContainer: '.quick-dat-popup-rpms'
   }
 };

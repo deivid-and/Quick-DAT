@@ -45,6 +45,7 @@ window.QD.dom.scheduleRescan = function scheduleRescan(context) {
       if (!popup.querySelector(window.QD.selectors.ui.iconsContainer)) {
         window.QD.ui.icons.addIconsToPopup(popup, context);
       }
+      window.QD.ui.rpm.addPopupRpmBadge(popup, context);
     });
     const delayedRateCells = document.querySelectorAll(window.QD.selectors.popup.rateCells);
     if (delayedRateCells.length > 0) {
